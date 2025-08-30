@@ -6,7 +6,6 @@ A sophisticated Python library for generating high-quality 3D dice models with f
 
 This project is still under development and there are a few active bugs that need to be resolved before it will be ready for use:
 
-- Some die faces show the number inverted.
 - The d4 acts like other dice, with one number centered per face, which does not work.
 - The orientation of numbers against their die faces is not consistent.
 - The default number placement isn't "balanced" yet.
@@ -16,7 +15,7 @@ This project is still under development and there are a few active bugs that nee
 ### Core Capabilities
 
 - **Complete RPG Dice Set**: D4, D6, D8, D10, D12, and D20 polyhedra
-- **Font-Based Text Engraving**: Uses actual TTF fonts for crisp, readable numbers
+- **Font-Based Text Engraving**: Uses actual TTF fonts for crisp, readable numbers and characters
 - **Customizable Layouts**: Control which number appears on each face
 - **Precision Geometry**: Mathematically accurate polyhedra with configurable dimensions
 - **STL Export**: High-quality mesh output ready for 3D printing

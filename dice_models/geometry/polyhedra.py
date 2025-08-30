@@ -22,7 +22,9 @@ class PolyhedronGeometry:
     """Base class for polyhedron geometry calculations."""
 
     @staticmethod
-    def get_vertices_and_faces(polyhedron_type: PolyhedronType, radius: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+    def get_vertices_and_faces(
+        polyhedron_type: PolyhedronType, radius: float = 1.0
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get vertices and faces for a given polyhedron type.
 
@@ -80,6 +82,10 @@ class PolyhedronGeometry:
             Array of normalized face normal vectors
         """
         normals = []
+
+        # Calculate polyhedron center
+        polyhedron_center = np.mean(vertices, axis=0)
+
         for face in faces:
             # Get three vertices of the face
             v0, v1, v2 = vertices[face[:3]]
@@ -90,6 +96,18 @@ class PolyhedronGeometry:
             normal = np.cross(edge1, edge2)
             # Normalize
             normal = normal / np.linalg.norm(normal)
+
+            # Calculate face center
+            face_center = np.mean([v0, v1, v2], axis=0)
+
+            # Vector from polyhedron center to face center
+            center_to_face = face_center - polyhedron_center
+
+            # Check if normal points outward (same direction as center_to_face)
+            # If dot product is negative, normal points inward, so flip it
+            if np.dot(normal, center_to_face) < 0:
+                normal = -normal
+
             normals.append(normal)
         return np.array(normals)
 
