@@ -297,36 +297,36 @@ def _paths_to_3d_mesh(
     paths: List[List[Tuple[float, float]]], depth: float
 ) -> trimesh.Trimesh:
     """
-    Convert 2D font paths to a 3D mesh using proper triangulation.
+    Convert 2D font paths to a 3D mesh using proper triangulation with hole support.
     """
     if not paths:
         raise ValueError("No paths to convert")
 
+    # Separate outer boundaries from holes based on winding order and area
+    boundaries, holes = _separate_boundaries_and_holes(paths)
+    
+    if not boundaries:
+        # No valid boundaries found, create simple box
+        return _create_simple_text_box(paths, depth)
+
     # Collect all vertices and segments for triangulation
     all_vertices = []
     all_segments = []
+    hole_points = []  # Points inside holes for triangulation
     vertex_map = {}  # To avoid duplicate vertices
 
-    for path in paths:
-        # Add vertices from this path
-        for i, (x, y) in enumerate(path):
-            vertex_key = (
-                round(x, 6),
-                round(y, 6),
-            )  # Round to avoid floating point issues
-            if vertex_key not in vertex_map:
-                vertex_map[vertex_key] = len(all_vertices)
-                all_vertices.append([x, y])
+    # Add boundary paths
+    for boundary in boundaries:
+        _add_path_to_triangulation(boundary, all_vertices, all_segments, vertex_map)
 
-            # Add segment to next vertex (except for last vertex)
-            if i < len(path) - 1:
-                v1_idx = vertex_map[vertex_key]
-                next_key = (round(path[i + 1][0], 6), round(path[i + 1][1], 6))
-                if next_key not in vertex_map:
-                    vertex_map[next_key] = len(all_vertices)
-                    all_vertices.append([path[i + 1][0], path[i + 1][1]])
-                v2_idx = vertex_map[next_key]
-                all_segments.append([v1_idx, v2_idx])
+    # Add hole paths and mark hole points
+    for hole in holes:
+        _add_path_to_triangulation(hole, all_vertices, all_segments, vertex_map)
+        
+        # Add a point inside the hole for triangulation
+        hole_center = _calculate_path_centroid(hole)
+        if hole_center and _point_in_polygon(hole_center, hole):
+            hole_points.append(hole_center)
 
     if len(all_vertices) < 3:
         # Not enough vertices for triangulation, create simple rectangle
@@ -336,7 +336,7 @@ def _paths_to_3d_mesh(
     vertices_array = np.array(all_vertices)
     segments_array = np.array(all_segments) if all_segments else None
 
-    # Perform constrained Delaunay triangulation
+    # Perform constrained Delaunay triangulation with holes
     try:
         triangulation_input = {
             "vertices": vertices_array,
@@ -345,8 +345,16 @@ def _paths_to_3d_mesh(
         if segments_array is not None and len(segments_array) > 0:
             triangulation_input["segments"] = segments_array
 
-        # Use triangle library for proper 2D triangulation
-        triangulated = triangle.triangulate(triangulation_input, "p")  # 'p' for polygon
+        if hole_points:
+            triangulation_input["holes"] = np.array(hole_points)
+
+        # Use triangle library for proper 2D triangulation with holes
+        # 'p' for polygon, 'q' for quality mesh, 'a' for area constraint
+        flags = "pq30"  # polygon, quality 30 degrees minimum angle
+        if hole_points:
+            flags += "a0.1"  # small area constraint for better hole handling
+            
+        triangulated = triangle.triangulate(triangulation_input, flags)
 
         if "triangles" not in triangulated or len(triangulated["triangles"]) == 0:
             # Triangulation failed, fall back to simple box
@@ -362,6 +370,177 @@ def _paths_to_3d_mesh(
     except Exception as e:
         logger.warning(f"Triangulation failed: {e}")
         return _create_simple_text_box(paths, depth)
+
+
+def _separate_boundaries_and_holes(paths: List[List[Tuple[float, float]]]) -> Tuple[List[List[Tuple[float, float]]], List[List[Tuple[float, float]]]]:
+    """
+    Separate font paths into outer boundaries and inner holes based on winding order and containment.
+    
+    Returns:
+        Tuple of (boundaries, holes)
+    """
+    if not paths:
+        return [], []
+    
+    # Calculate area and winding for each path
+    path_info = []
+    for i, path in enumerate(paths):
+        if len(path) < 3:
+            continue
+            
+        area = _calculate_polygon_area(path)
+        winding = 1 if area > 0 else -1  # Positive area = CCW, negative = CW
+        path_info.append({
+            'index': i,
+            'path': path,
+            'area': abs(area),
+            'winding': winding,
+            'bbox': _calculate_bbox(path)
+        })
+    
+    if not path_info:
+        return [], []
+    
+    # Sort by area (largest first) to process outer boundaries before holes
+    path_info.sort(key=lambda x: x['area'], reverse=True)
+    
+    boundaries = []
+    holes = []
+    
+    for info in path_info:
+        path = info['path']
+        
+        # Check if this path is contained within any existing boundary
+        is_hole = False
+        for boundary_info in [p for p in path_info if p['area'] > info['area']]:
+            if _path_contains_path(boundary_info['path'], path):
+                is_hole = True
+                break
+        
+        if is_hole:
+            # Ensure holes have clockwise winding (negative area)
+            if info['winding'] > 0:
+                path = path[::-1]  # Reverse for clockwise winding
+            holes.append(path)
+        else:
+            # Ensure boundaries have counter-clockwise winding (positive area)
+            if info['winding'] < 0:
+                path = path[::-1]  # Reverse for counter-clockwise winding
+            boundaries.append(path)
+    
+    return boundaries, holes
+
+
+def _calculate_polygon_area(path: List[Tuple[float, float]]) -> float:
+    """Calculate signed area of a polygon using the shoelace formula."""
+    if len(path) < 3:
+        return 0.0
+    
+    area = 0.0
+    n = len(path)
+    for i in range(n):
+        j = (i + 1) % n
+        area += path[i][0] * path[j][1]
+        area -= path[j][0] * path[i][1]
+    
+    return area / 2.0
+
+
+def _calculate_bbox(path: List[Tuple[float, float]]) -> Tuple[float, float, float, float]:
+    """Calculate bounding box of a path."""
+    if not path:
+        return 0, 0, 0, 0
+    
+    xs, ys = zip(*path)
+    return min(xs), min(ys), max(xs), max(ys)
+
+
+def _path_contains_path(outer_path: List[Tuple[float, float]], inner_path: List[Tuple[float, float]]) -> bool:
+    """Check if outer_path contains inner_path using bounding box and point-in-polygon tests."""
+    if not outer_path or not inner_path:
+        return False
+    
+    # Quick bounding box test first
+    outer_bbox = _calculate_bbox(outer_path)
+    inner_bbox = _calculate_bbox(inner_path)
+    
+    # Check if inner bbox is completely inside outer bbox
+    if not (outer_bbox[0] <= inner_bbox[0] and inner_bbox[2] <= outer_bbox[2] and
+            outer_bbox[1] <= inner_bbox[1] and inner_bbox[3] <= outer_bbox[3]):
+        return False
+    
+    # Check if center point of inner path is inside outer path
+    center = _calculate_path_centroid(inner_path)
+    if center:
+        return _point_in_polygon(center, outer_path)
+    
+    return False
+
+
+def _calculate_path_centroid(path: List[Tuple[float, float]]) -> Optional[Tuple[float, float]]:
+    """Calculate the centroid of a path."""
+    if len(path) < 3:
+        return None
+    
+    area = _calculate_polygon_area(path)
+    if abs(area) < 1e-10:
+        return None
+    
+    cx = cy = 0.0
+    n = len(path)
+    
+    for i in range(n):
+        j = (i + 1) % n
+        cross = path[i][0] * path[j][1] - path[j][0] * path[i][1]
+        cx += (path[i][0] + path[j][0]) * cross
+        cy += (path[i][1] + path[j][1]) * cross
+    
+    factor = 1.0 / (6.0 * area)
+    return (cx * factor, cy * factor)
+
+
+def _point_in_polygon(point: Tuple[float, float], polygon: List[Tuple[float, float]]) -> bool:
+    """Test if a point is inside a polygon using ray casting algorithm."""
+    x, y = point
+    n = len(polygon)
+    inside = False
+    
+    p1x, p1y = polygon[0]
+    for i in range(1, n + 1):
+        p2x, p2y = polygon[i % n]
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    
+    return inside
+
+
+def _add_path_to_triangulation(path: List[Tuple[float, float]], all_vertices: List, all_segments: List, vertex_map: dict):
+    """Add a path's vertices and segments to the triangulation data structures."""
+    if len(path) < 2:
+        return
+    
+    path_vertex_indices = []
+    
+    # Add vertices from this path
+    for x, y in path:
+        vertex_key = (round(x, 6), round(y, 6))  # Round to avoid floating point issues
+        if vertex_key not in vertex_map:
+            vertex_map[vertex_key] = len(all_vertices)
+            all_vertices.append([x, y])
+        path_vertex_indices.append(vertex_map[vertex_key])
+    
+    # Add segments connecting consecutive vertices
+    for i in range(len(path_vertex_indices)):
+        v1_idx = path_vertex_indices[i]
+        v2_idx = path_vertex_indices[(i + 1) % len(path_vertex_indices)]
+        if v1_idx != v2_idx:  # Avoid degenerate segments
+            all_segments.append([v1_idx, v2_idx])
 
 
 def _create_simple_text_box(

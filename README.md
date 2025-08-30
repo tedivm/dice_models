@@ -7,7 +7,8 @@ A sophisticated Python library for generating high-quality 3D dice models with f
 This project is still under development and there are a few active bugs that need to be resolved before it will be ready for use:
 
 - Some die faces show the number inverted.
-- The inner parts of some numbers (4, 6, 8, 9, 0) are missing.
+- The font system does not handle curves very well yet, so curvy fonts do not look good.
+- The d4 acts like other dice, with one number centered per face, which does not work.
 - The orientation of numbers against their die faces is not consistent.
 - The default number placement isn't "balanced" yet.
 
