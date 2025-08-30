@@ -366,14 +366,6 @@ Create JSON configuration files for batch generation:
 
 ## Development
 
-### Dependencies
-
-- numpy - Mathematical operations
-- trimesh - 3D geometry processing
-- numpy-stl - STL file generation
-- fonttools - Font handling
-- typer - CLI framework
-
 ### Testing
 
 ```bash
@@ -387,23 +379,6 @@ pytest
 pytest --cov=dice_models
 ```
 
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
-
 ## License
 
 MIT License - see LICENSE file for details.
-
-## Examples
-
-See the `examples/` directory for:
-
-- Sample configuration files
-- Usage examples
-- 3D printing tips
-- Troubleshooting guide
