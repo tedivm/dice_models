@@ -7,7 +7,6 @@ A sophisticated Python library for generating high-quality 3D dice models with f
 This project is still under development and there are a few active bugs that need to be resolved before it will be ready for use:
 
 - Some die faces show the number inverted.
-- The font system does not handle curves very well yet, so curvy fonts do not look good.
 - The d4 acts like other dice, with one number centered per face, which does not work.
 - The orientation of numbers against their die faces is not consistent.
 - The default number placement isn't "balanced" yet.
@@ -26,6 +25,7 @@ This project is still under development and there are a few active bugs that nee
 
 - **Custom Fonts**: Support for any TTF font file with automatic system font detection
 - **Configurable Text**: Adjustable depth, size, and positioning for optimal readability
+- **Curve Resolution**: High-quality curve rendering with configurable smoothness levels
 - **Blank Dice**: Generate dice without numbers for custom applications
 - **Batch Processing**: Create multiple dice with different parameters from configuration files
 - **Multiple Interfaces**: Command-line tool and Python API
@@ -46,14 +46,15 @@ Generate a standard D6 die:
 python -m dice_models.cli generate 6 my_d6.stl
 ```
 
-Create a large D20 with custom font:
+Create a large D20 with custom font and highest quality curves:
 
 ```bash
 python -m dice_models.cli generate 20 d20.stl \
     --radius 15.0 \
     --font "/System/Library/Fonts/Arial.ttf" \
     --text-depth 1.0 \
-    --text-size 4.0
+    --text-size 4.0 \
+    --curve-resolution highest
 ```
 
 Generate a blank die (no numbers):
@@ -67,8 +68,8 @@ python -m dice_models.cli generate 12 blank_d12.stl --no-numbers
 ```python
 from dice_models import create_standard_dice, DiceGeometry, PolyhedronType
 
-# Quick generation
-d6 = create_standard_dice(6, radius=10.0, output_path="d6.stl")
+# Quick generation with high-quality curves
+d6 = create_standard_dice(6, radius=10.0, curve_resolution="highest", output_path="d6.stl")
 
 # Advanced customization
 from dice_models.geometry.dice import DiceGeometry
@@ -80,6 +81,7 @@ dice = DiceGeometry(
     font_path="/path/to/custom/font.ttf",
     text_depth=0.8,
     text_size=3.5,
+    curve_resolution="highest",  # Smoothest curves for curved characters
     number_layout=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 )
 
@@ -108,6 +110,7 @@ print(f"Vertices: {len(mesh.vertices)}, Faces: {len(mesh.faces)}")
 | `--font -f` | Path to TTF font file | System default |
 | `--text-depth` | Number engraving depth in mm | 0.5 |
 | `--text-size` | Number size in mm | 3.0 |
+| `--curve-resolution -q` | Curve quality: "low", "medium", "high", "highest", or integer | high |
 | `--no-numbers` | Generate blank die | False |
 | `--layout` | Custom number layout (comma-separated) | Standard layout |
 
@@ -121,6 +124,48 @@ print(f"Vertices: {len(mesh.vertices)}, Faces: {len(mesh.faces)}")
 | D10 | Pentagonal Trapezohedron | 10-sided with pentagonal faces |
 | D12 | Dodecahedron | 12-sided with pentagonal faces |
 | D20 | Icosahedron | 20-sided with triangular faces |
+
+## 🎨 Curve Resolution Quality
+
+The library supports configurable curve resolution for optimal font rendering quality:
+
+### Resolution Levels
+
+| Level | Points per Curve | Use Case | Performance |
+|-------|------------------|----------|-------------|
+| `low` | 5 | Fast prototyping, testing | Fastest |
+| `medium` | 10 | General use, good balance | Balanced |
+| `high` | 20 | Production quality (default) | Good |
+| `highest` | 50 | Maximum smoothness | Slower |
+
+### When to Use Different Resolutions
+
+- **Low/Medium**: Basic geometry tests, rapid prototyping
+- **High**: Production dice with standard quality (recommended)
+- **Highest**: Characters with curves (0, 6, 8, 9, O, D, B) for premium quality
+
+### Examples
+
+```bash
+# Fast prototyping
+python -m dice_models.cli generate 6 prototype.stl --curve-resolution low
+
+# Production quality
+python -m dice_models.cli generate 6 standard.stl --curve-resolution high
+
+# Premium quality for curved characters
+python -m dice_models.cli generate 6 premium.stl --curve-resolution highest --layout "8,6,9,0,8,6"
+```
+
+```python
+# API usage
+from dice_models import create_standard_dice
+
+# Different quality levels
+fast_dice = create_standard_dice(6, curve_resolution="low")
+standard_dice = create_standard_dice(6, curve_resolution="high")  
+premium_dice = create_standard_dice(6, curve_resolution="highest")
+```
 
 ## 🔧 Advanced Usage
 
@@ -201,7 +246,8 @@ python demo_cli.py
 ### Geometry Engine
 
 - **Precision Polyhedra**: Mathematically accurate vertex and face generation
-- **Font Rendering**: TTF font parsing with vector-to-mesh conversion
+- **Font Rendering**: TTF font parsing with vector-to-mesh conversion using proper Bézier curve mathematics
+- **Curve Quality**: Configurable resolution from fast (5 points) to ultra-smooth (50+ points per curve)
 - **Mesh Operations**: Subdivision, boolean operations, and mesh cleaning
 - **Quality Assurance**: Watertight mesh validation and normal correction
 
@@ -230,23 +276,24 @@ pytest tests/
 ```text
 dice_models/
 ├── geometry/          # Core geometric algorithms
-│   ├── dice.py       # Main dice generation class
+│   ├── dice.py       # Main dice generation class with curve resolution support
 │   ├── polyhedra.py  # Polyhedron definitions and utilities
-│   └── text.py       # Font-based text engraving
+│   └── text.py       # Font-based text engraving with Bézier curve mathematics
 ├── cli.py            # Command-line interface
 └── settings.py       # Configuration management
 
 demo/                 # Comprehensive examples and demonstrations
-tests/                # Full test suite (73+ tests)
+tests/                # Full test suite (79+ tests)
 docs/                 # Documentation and development guides
 ```
 
 ## 📊 Quality Assurance
 
-- **Comprehensive Testing**: 73+ tests covering all functionality
+- **Comprehensive Testing**: 79+ tests covering all functionality including curve rendering
 - **Geometric Validation**: Mesh integrity and mathematical accuracy
 - **Cross-Platform**: Tested on macOS, Linux, and Windows
-- **Font Compatibility**: Robust handling of various TTF fonts
+- **Font Compatibility**: Robust handling of various TTF fonts with proper curve support
+- **Performance Optimized**: Configurable quality levels for development vs. production
 - **3D Print Ready**: Generated meshes validated for manufacturability
 
 ## 🤝 Use Cases
@@ -264,122 +311,3 @@ This project is licensed under the terms specified in the LICENSE file.
 ---
 
 **Ready to create your perfect dice?** Start with the quick start guide above or explore the comprehensive demos to see all the possibilities!
-d20 = DiceGeometry(
-    polyhedron_type=PolyhedronType.ICOSAHEDRON,
-    radius=12.0,
-    number_layout=list(range(1, 21)),  # 1-20
-    text_depth=0.5,
-    text_size=3.0
-)
-d20.export_stl("custom_d20.stl")
-
-```
-
-## Command Line Interface
-
-### Basic Commands
-
-- `dice_models generate SIDES OUTPUT [OPTIONS]` - Generate a single dice
-- `dice_models list-types` - Show supported dice types
-- `dice_models batch-generate CONFIG [OPTIONS]` - Generate multiple dice from config
-- `dice_models version` - Show version information
-
-### Generate Options
-
-- `--radius FLOAT` - Radius of the dice in mm (default: 10.0)
-- `--font PATH` - Path to TTF font file for numbers
-- `--text-depth FLOAT` - Depth of number engraving in mm (default: 0.5)
-- `--text-size FLOAT` - Size of numbers in mm (default: 3.0)
-- `--no-numbers` - Generate blank dice without numbers
-- `--layout TEXT` - Custom number layout (comma-separated)
-
-### Examples
-
-```bash
-# Large D6 with deep engraving
-dice_models generate 6 large_d6.stl --radius 20.0 --text-depth 1.0
-
-# D6 with custom number layout
-dice_models generate 6 custom_d6.stl --layout "6,5,4,3,2,1"
-
-# Blank D20 for custom engraving
-dice_models generate 20 blank_d20.stl --no-numbers
-
-# Batch generation from config file
-dice_models batch-generate examples/dice_config.json --output-dir ./dice
-```
-
-## Supported Dice Types
-
-| Sides | Name | Polyhedron |
-|-------|------|------------|
-| 4 | D4 | Tetrahedron |
-| 6 | D6 | Cube |
-| 8 | D8 | Octahedron |
-| 10 | D10 | Pentagonal Trapezohedron |
-| 12 | D12 | Dodecahedron |
-| 20 | D20 | Icosahedron |
-
-## Configuration Files
-
-Create JSON configuration files for batch generation:
-
-```json
-{
-  "dice": [
-    {
-      "sides": 6,
-      "filename": "standard_d6.stl",
-      "radius": 10.0,
-      "text_depth": 0.5,
-      "text_size": 3.0
-    },
-    {
-      "sides": 20,
-      "filename": "large_d20.stl",
-      "radius": 15.0,
-      "text_depth": 0.8,
-      "text_size": 4.0
-    }
-  ]
-}
-```
-
-## 3D Printing Guidelines
-
-### Recommended Settings
-
-- **Layer Height**: 0.1-0.2mm for fine details
-- **Infill**: 100% for proper weight and balance
-- **Print Speed**: 30-50mm/s for better surface finish
-
-### Size Recommendations
-
-- **Small dice**: 8-10mm radius
-- **Standard dice**: 10-12mm radius
-- **Large dice**: 15-20mm radius
-
-### Text Depth Guidelines
-
-- **0.1mm layers**: 0.3-0.5mm depth
-- **0.2mm layers**: 0.5-0.8mm depth
-- **Large dice**: 1.0mm+ depth
-
-## Development
-
-### Testing
-
-```bash
-# Install development dependencies
-pip install -e .[dev]
-
-# Run tests
-pytest
-
-# Run with coverage
-pytest --cov=dice_models
-```
-
-## License
-
-MIT License - see LICENSE file for details.

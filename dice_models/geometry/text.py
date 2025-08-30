@@ -37,9 +37,10 @@ def create_engraved_text(
     text_depth: float = 0.05,
     text_size: float = 0.3,
     font_path: Optional[str] = None,
+    curve_resolution: int = 20,
 ) -> trimesh.Trimesh:
     """
-    Create engraved text on a mesh face using actual font rendering.
+    Create engraved text on a mesh face using actual font rendering with configurable curve quality.
 
     Args:
         base_mesh: The base mesh to engrave into
@@ -49,6 +50,7 @@ def create_engraved_text(
         text_depth: How deep to make the engraving
         text_size: Size of the text
         font_path: Path to TTF font file
+        curve_resolution: Number of points to use for curve approximation (higher = smoother curves)
 
     Returns:
         Mesh with the text engraved
@@ -65,8 +67,8 @@ def create_engraved_text(
 
         logger.debug(f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}")
 
-        # Create 3D text geometry from font
-        text_mesh = _create_font_text_mesh(text, actual_text_size, actual_depth, font_path)
+        # Create 3D text geometry from font with specified curve resolution
+        text_mesh = _create_font_text_mesh(text, actual_text_size, actual_depth, font_path, curve_resolution)
 
         if text_mesh is None:
             logger.warning(f"Failed to create text mesh for '{text}'")
@@ -127,16 +129,17 @@ def create_engraved_text(
 
 
 def _create_font_text_mesh(
-    text: str, size: float, depth: float, font_path: Optional[str] = None
+    text: str, size: float, depth: float, font_path: Optional[str] = None, curve_resolution: int = 20
 ) -> Optional[trimesh.Trimesh]:
     """
-    Create a 3D mesh from text using actual font rendering.
+    Create a 3D mesh from text using actual font rendering with configurable curve quality.
 
     Args:
         text: The text to render
         size: Size of the text
         depth: Depth of extrusion
         font_path: Path to font file
+        curve_resolution: Number of points to use for curve approximation (higher = smoother)
 
     Returns:
         3D mesh of the text or None if failed
@@ -156,7 +159,7 @@ def _create_font_text_mesh(
             return _create_fallback_text_mesh(text, size, depth)
 
     try:
-        return _create_font_based_mesh(text, size, depth, actual_font_path)
+        return _create_font_based_mesh(text, size, depth, actual_font_path, curve_resolution)
     except Exception as e:
         logger.warning(f"Font-based rendering failed: {e}")
         return _create_fallback_text_mesh(text, size, depth)
@@ -181,12 +184,13 @@ def _find_default_font() -> Optional[str]:
 
 
 class PathRecorderPen(BasePen):
-    """A pen that records font outline paths as coordinates."""
+    """A pen that records font outline paths as coordinates with high-quality curve approximation."""
 
-    def __init__(self, glyphSet=None):
+    def __init__(self, glyphSet=None, curve_resolution=20):
         super().__init__(glyphSet)
         self.paths = []
         self.current_path = []
+        self.curve_resolution = curve_resolution  # Number of points to use for curve approximation
 
     def moveTo(self, pt):
         if self.current_path:
@@ -197,16 +201,126 @@ class PathRecorderPen(BasePen):
         self.current_path.append(pt)
 
     def curveTo(self, *points):
-        # Approximate curves with line segments
-        if len(points) >= 1:
-            # Add the final point of the curve
-            self.current_path.append(points[-1])
-            # For better approximation, could add intermediate points here
+        """Handle cubic Bézier curves with proper approximation."""
+        if len(points) < 3:
+            # Not enough control points, just add the last point
+            if points:
+                self.current_path.append(points[-1])
+            return
+        
+        # Current point is the start of the curve
+        if not self.current_path:
+            return
+            
+        start_point = self.current_path[-1]
+        
+        # For cubic Bézier: start, control1, control2, end
+        if len(points) == 3:
+            control1, control2, end_point = points
+        else:
+            # Handle cases with more control points by using the last 3
+            control1, control2, end_point = points[-3:]
+        
+        # Generate curve points using cubic Bézier formula
+        curve_points = self._approximate_cubic_bezier(
+            start_point, control1, control2, end_point, self.curve_resolution
+        )
+        
+        # Add the curve points (skip the first one as it's already in the path)
+        self.current_path.extend(curve_points[1:])
 
     def qCurveTo(self, *points):
-        # Handle quadratic curves
-        if len(points) >= 1:
-            self.current_path.append(points[-1])
+        """Handle quadratic Bézier curves with proper approximation."""
+        if not points:
+            return
+            
+        if not self.current_path:
+            return
+            
+        start_point = self.current_path[-1]
+        
+        # For quadratic curves, we might have multiple control points
+        # Process them in pairs (control_point, end_point)
+        for i in range(0, len(points), 2):
+            if i + 1 < len(points):
+                control_point = points[i]
+                end_point = points[i + 1]
+            else:
+                # Odd number of points, treat the last one as both control and end
+                control_point = points[i]
+                end_point = points[i]
+            
+            # Generate curve points using quadratic Bézier formula
+            curve_points = self._approximate_quadratic_bezier(
+                start_point, control_point, end_point, self.curve_resolution
+            )
+            
+            # Add the curve points (skip the first one as it's already in the path)
+            self.current_path.extend(curve_points[1:])
+            
+            # Update start point for next curve segment
+            start_point = end_point
+
+    def _approximate_cubic_bezier(self, p0, p1, p2, p3, num_points):
+        """
+        Approximate a cubic Bézier curve with line segments.
+        
+        Args:
+            p0: Start point (x, y)
+            p1: First control point (x, y)  
+            p2: Second control point (x, y)
+            p3: End point (x, y)
+            num_points: Number of points to generate
+            
+        Returns:
+            List of (x, y) points along the curve
+        """
+        points = []
+        for i in range(num_points + 1):
+            t = i / num_points
+            
+            # Cubic Bézier formula: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
+            x = (
+                (1 - t) ** 3 * p0[0] +
+                3 * (1 - t) ** 2 * t * p1[0] +
+                3 * (1 - t) * t ** 2 * p2[0] +
+                t ** 3 * p3[0]
+            )
+            y = (
+                (1 - t) ** 3 * p0[1] +
+                3 * (1 - t) ** 2 * t * p1[1] +
+                3 * (1 - t) * t ** 2 * p2[1] +
+                t ** 3 * p3[1]
+            )
+            
+            points.append((x, y))
+        
+        return points
+
+    def _approximate_quadratic_bezier(self, p0, p1, p2, num_points):
+        """
+        Approximate a quadratic Bézier curve with line segments.
+        
+        Args:
+            p0: Start point (x, y)
+            p1: Control point (x, y)
+            p2: End point (x, y)
+            num_points: Number of points to generate
+            
+        Returns:
+            List of (x, y) points along the curve
+        """
+        points = []
+        for i in range(num_points + 1):
+            t = i / num_points
+            
+            # Quadratic Bézier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
+            x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
+            y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
+            
+            points.append((x, y))
+        
+        return points
 
     def closePath(self):
         if self.current_path and len(self.current_path) > 2:
@@ -221,9 +335,18 @@ class PathRecorderPen(BasePen):
             self.current_path = []
 
 
-def _create_font_based_mesh(text: str, size: float, depth: float, font_path: str) -> trimesh.Trimesh:
+def _create_font_based_mesh(
+    text: str, size: float, depth: float, font_path: str, curve_resolution: int = 20
+) -> trimesh.Trimesh:
     """
-    Create 3D text mesh using actual font outlines.
+    Create 3D text mesh using actual font outlines with high-quality curve rendering.
+    
+    Args:
+        text: The text to render
+        size: Size of the text
+        depth: Depth of extrusion
+        font_path: Path to font file
+        curve_resolution: Number of points to use for curve approximation (higher = smoother)
     """
     # Load font
     font = TTFont(font_path)
@@ -247,8 +370,8 @@ def _create_font_based_mesh(text: str, size: float, depth: float, font_path: str
         glyph_name = cmap[char_code]
         glyph = glyph_set[glyph_name]
 
-        # Extract glyph outline using our custom pen
-        pen = PathRecorderPen()
+        # Extract glyph outline using our custom pen with high-resolution curve handling
+        pen = PathRecorderPen(curve_resolution=curve_resolution)
         glyph.draw(pen)
 
         # Convert paths to our coordinate system
@@ -768,9 +891,10 @@ def create_engraved_number(
     text_depth: float = 0.05,
     text_size: float = 0.3,
     font_path: Optional[str] = None,
+    curve_resolution: int = 20,
 ) -> trimesh.Trimesh:
     """
-    Legacy function - now calls the proper font-based text engraving.
+    Legacy function - now calls the proper font-based text engraving with curve resolution support.
     """
     return create_engraved_text(
         base_mesh=base_mesh,
@@ -780,4 +904,5 @@ def create_engraved_number(
         text_depth=text_depth,
         text_size=text_size,
         font_path=font_path,
+        curve_resolution=curve_resolution,
     )

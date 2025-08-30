@@ -83,14 +83,14 @@ class TestDiceGeometry:
             (PolyhedronType.DODECAHEDRON, 12),
             (PolyhedronType.ICOSAHEDRON, 20),
         ]:
-            dice = DiceGeometry(polyhedron_type)
+            dice = DiceGeometry(polyhedron_type, curve_resolution="low")
             assert dice.sides == sides
             assert len(dice.number_layout) == sides
 
     def test_mesh_generation(self):
         """Test mesh generation for different dice types."""
         for sides in [4, 6, 8, 10, 12, 20]:
-            dice = create_standard_dice(sides=sides, radius=10.0)
+            dice = create_standard_dice(sides=sides, radius=10.0, curve_resolution="low")
 
             # Test mesh without numbers
             mesh_no_numbers = dice.generate_mesh(include_numbers=False)
@@ -175,7 +175,7 @@ class TestDiceGeometry:
     def test_custom_number_layout(self):
         """Test custom number layouts."""
         custom_layout = [6, 5, 4, 3, 2, 1]
-        dice = DiceGeometry(PolyhedronType.CUBE, number_layout=custom_layout)
+        dice = DiceGeometry(PolyhedronType.CUBE, number_layout=custom_layout, curve_resolution="low")
 
         assert dice.number_layout == custom_layout
 
@@ -185,7 +185,7 @@ class TestDiceGeometry:
 
     def test_dice_info(self):
         """Test dice information gathering."""
-        dice = DiceGeometry(PolyhedronType.ICOSAHEDRON, radius=15.0)
+        dice = DiceGeometry(PolyhedronType.ICOSAHEDRON, radius=15.0, curve_resolution="low")
         info = dice.get_info()
 
         assert info["type"] == "ICOSAHEDRON"
@@ -195,7 +195,7 @@ class TestDiceGeometry:
 
     def test_stl_export(self):
         """Test STL file export."""
-        dice = DiceGeometry(PolyhedronType.TETRAHEDRON, radius=8.0)
+        dice = DiceGeometry(PolyhedronType.TETRAHEDRON, radius=8.0, curve_resolution="low")
 
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "test_d4.stl"
@@ -364,4 +364,4 @@ class TestIntegration:
 
         # Test invalid custom layout
         with pytest.raises(ValueError):
-            DiceGeometry(PolyhedronType.CUBE, number_layout=[1, 2, 3])  # Too few numbers
+            DiceGeometry(PolyhedronType.CUBE, number_layout=[1, 2, 3], curve_resolution="low")  # Too few numbers

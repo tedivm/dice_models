@@ -21,6 +21,7 @@ class TestHoleCharacters:
                 number_layout=[number] * 6,  # All faces show the same number
                 text_size=3.0,
                 text_depth=0.8,
+                curve_resolution="high",  # High quality needed for hole detection
             )
 
             # Generate both blank and engraved versions
@@ -49,6 +50,7 @@ class TestHoleCharacters:
                 number_layout=[letter] * 6,  # All faces show the same letter
                 text_size=4.0,
                 text_depth=1.0,
+                curve_resolution="high",  # High quality needed for hole detection
             )
 
             # Generate engraved mesh
@@ -67,6 +69,7 @@ class TestHoleCharacters:
             number_layout=["8"] * 6,
             text_size=5.0,
             text_depth=1.2,
+            curve_resolution="high",  # High quality needed for complex hole detection
         )
 
         blank_mesh = dice.generate_mesh(include_numbers=False)
@@ -94,6 +97,7 @@ class TestHoleCharacters:
             number_layout=mixed_layout,
             text_size=3.5,
             text_depth=0.8,
+            curve_resolution="high",  # High quality needed for hole detection
         )
 
         engraved_mesh = dice.generate_mesh(include_numbers=True)
@@ -112,6 +116,7 @@ class TestHoleCharacters:
                 number_layout=["4", "6", "8", "9", "0", "1", "2", "3"],
                 text_size=3.0,
                 text_depth=0.8,
+                curve_resolution="high",  # High quality needed for hole detection
             )
 
             output_path = Path(temp_dir) / "hole_characters_test.stl"
@@ -133,6 +138,7 @@ class TestHoleCharacters:
             number_layout=["8"] * 6,  # '8' has two holes
             text_size=4.0,
             text_depth=1.0,
+            curve_resolution="high",  # High quality needed for hole detection
         )
 
         # Create dice with solid character
@@ -142,6 +148,7 @@ class TestHoleCharacters:
             number_layout=["1"] * 6,  # '1' is a simple solid shape
             text_size=4.0,
             text_depth=1.0,
+            curve_resolution="high",  # Use same resolution for fair comparison
         )
 
         hole_mesh = hole_dice.generate_mesh(include_numbers=True)

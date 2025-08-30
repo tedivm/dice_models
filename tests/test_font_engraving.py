@@ -22,6 +22,7 @@ class TestFontBasedEngraving:
                 text_depth=1.0,
                 text_size=3.0,
                 font_path=font_path,
+                curve_resolution="medium",  # Basic functionality test
             )
 
             # Generate meshes to compare
@@ -46,7 +47,7 @@ class TestFontBasedEngraving:
         font_path = self._get_test_font()
 
         for sides, max_number in dice_types:
-            dice = create_standard_dice(sides=sides, radius=10.0)
+            dice = create_standard_dice(sides=sides, radius=10.0, curve_resolution="medium")
 
             success_count = 0
             failed_chars = []
@@ -96,7 +97,7 @@ class TestFontBasedEngraving:
         ]
 
         for sides, char, face_indices in test_cases:
-            dice = create_standard_dice(sides=sides, radius=10.0)
+            dice = create_standard_dice(sides=sides, radius=10.0, curve_resolution="medium")
 
             for face_idx in face_indices:
                 base_mesh = dice.generate_mesh(include_numbers=False)
@@ -117,7 +118,7 @@ class TestFontBasedEngraving:
     def test_different_characters_on_same_face(self):
         """Test different characters on the same face to isolate character vs face issues."""
         font_path = self._get_test_font()
-        dice = create_standard_dice(sides=8, radius=10.0)
+        dice = create_standard_dice(sides=8, radius=10.0, curve_resolution="medium")
 
         # Test various characters on D8 face 7 (previously problematic)
         test_chars = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "A", "B"]
@@ -153,7 +154,7 @@ class TestFontBasedEngraving:
     def test_accumulating_engraving_complexity(self):
         """Test that multiple engravings on the same mesh work correctly."""
         font_path = self._get_test_font()
-        dice = create_standard_dice(sides=6, radius=10.0)
+        dice = create_standard_dice(sides=6, radius=10.0, curve_resolution="medium")
 
         base_mesh = dice.generate_mesh(include_numbers=False)
         current_mesh = base_mesh.copy()
@@ -214,6 +215,7 @@ class TestFontBasedEngraving:
             text_depth=1.0,
             text_size=3.0,
             font_path=fake_font_path,
+            curve_resolution="medium",
         )
 
         # Should still work with fallback font or simple geometry
@@ -226,7 +228,7 @@ class TestFontBasedEngraving:
     def test_engraving_parameters(self):
         """Test various engraving parameters."""
         font_path = self._get_test_font()
-        dice = create_standard_dice(sides=6, radius=10.0)
+        dice = create_standard_dice(sides=6, radius=10.0, curve_resolution="medium")
         base_mesh = dice.generate_mesh(include_numbers=False)
 
         # Test different text depths
@@ -273,6 +275,7 @@ class TestFontBasedEngraving:
                     text_depth=1.0,
                     text_size=3.0,
                     font_path=font_path,
+                    curve_resolution="medium",
                 )
 
                 dice.export_stl(output_path, include_numbers=True)
@@ -304,7 +307,7 @@ class TestEngravingRegressions:
     def test_d8_number_7_regression(self):
         """Test the specific D8 number 7 issue that was discovered."""
         font_path = self._get_test_font()
-        dice = create_standard_dice(sides=8, radius=10.0)
+        dice = create_standard_dice(sides=8, radius=10.0, curve_resolution="medium")
 
         # This specific combination was failing
         base_mesh = dice.generate_mesh(include_numbers=False)
@@ -332,6 +335,7 @@ class TestEngravingRegressions:
                 text_depth=1.0,
                 text_size=3.0,
                 font_path=font_path,
+                curve_resolution="medium",
             )
 
             mesh_no_numbers = dice.generate_mesh(include_numbers=False)
@@ -349,7 +353,7 @@ class TestEngravingRegressions:
     def test_backwards_text_regression(self):
         """Test for backwards text issues that were reported."""
         font_path = self._get_test_font()
-        dice = create_standard_dice(sides=6, radius=10.0)
+        dice = create_standard_dice(sides=6, radius=10.0, curve_resolution="medium")
 
         # Create a simple test to verify text orientation
         # This is more of a visual test, but we can at least verify the mesh is created

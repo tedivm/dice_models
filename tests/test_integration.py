@@ -27,6 +27,7 @@ class TestWorkflowIntegration:
                     radius=10.0,
                     text_depth=0.8,
                     text_size=3.5,
+                    curve_resolution="medium",  # Integration test can use medium quality
                 )
 
                 # Generate both numbered and blank versions
@@ -71,6 +72,7 @@ class TestWorkflowIntegration:
                 number_layout=custom_layout,
                 text_depth=1.2,
                 text_size=5.0,
+                curve_resolution="medium",  # Integration test can use medium quality
             )
 
             # Generate and export
@@ -112,6 +114,7 @@ class TestWorkflowIntegration:
                     font_path=available_font,
                     text_depth=1.0,
                     text_size=4.0,
+                    curve_resolution="medium",  # Font integration test
                 )
 
                 font_output = Path(temp_dir) / "font_d6.stl"

@@ -116,13 +116,32 @@ def main():
     else:
         print("\nSkipping font demo - no common system fonts found")
 
-    # Demo 6: Blank dice
+    # Demo 6: Curve resolution for quality
+    run_command(
+        base_cmd + [
+            "generate", "6", str(cli_output / "cli_d6_low_quality.stl"),
+            "--curve-resolution", "low",
+            "--layout", "8,8,8,8,8,8"  # All 8s to show curve quality
+        ],
+        "Generate D6 with low curve resolution (faster)",
+    )
+    
+    run_command(
+        base_cmd + [
+            "generate", "6", str(cli_output / "cli_d6_highest_quality.stl"),
+            "--curve-resolution", "highest",
+            "--layout", "8,8,8,8,8,8"  # All 8s to show curve quality
+        ],
+        "Generate D6 with highest curve resolution (smoothest)",
+    )
+
+    # Demo 8: Blank dice
     run_command(
         base_cmd + ["generate", "8", str(cli_output / "cli_d8_blank.stl"), "--no-numbers"],
         "Generate blank D8 (no numbers)",
     )
 
-    # Demo 7: Batch generation
+    # Demo 9: Batch generation
     batch_config = {
         "dice": [
             {"sides": 4, "filename": "cli_batch_d4.stl", "radius": 8.0},

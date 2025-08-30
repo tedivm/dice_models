@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import numpy as np
 import trimesh
@@ -12,6 +12,38 @@ from .polyhedra import PolyhedronGeometry, PolyhedronType, get_standard_number_l
 from .text import create_engraved_number
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_curve_resolution(resolution: Union[str, int]) -> int:
+    """
+    Convert curve resolution string to integer value.
+    
+    Args:
+        resolution: Either a string ("low", "medium", "high", "highest") or an integer
+        
+    Returns:
+        Integer resolution value
+        
+    Raises:
+        ValueError: If string is not a recognized resolution level
+    """
+    if isinstance(resolution, int):
+        if resolution < 3:
+            raise ValueError("Curve resolution must be at least 3 points")
+        return resolution
+    
+    resolution_map = {
+        "low": 5,
+        "medium": 10,
+        "high": 20,
+        "highest": 50
+    }
+    
+    if resolution.lower() not in resolution_map:
+        valid_options = ", ".join(resolution_map.keys())
+        raise ValueError(f"Invalid curve resolution '{resolution}'. Must be one of: {valid_options}")
+    
+    return resolution_map[resolution.lower()]
 
 
 class DiceGeometry:
@@ -25,6 +57,7 @@ class DiceGeometry:
         font_path: Optional[str] = None,
         text_depth: float = 0.5,
         text_size: float = 3.0,
+        curve_resolution: Union[str, int] = "high",
     ):
         """
         Initialize a dice geometry generator.
@@ -36,12 +69,16 @@ class DiceGeometry:
             font_path: Path to TTF font file for numbers
             text_depth: Depth of number engraving in mm
             text_size: Size of numbers in mm
+            curve_resolution: Number of points for curve approximation. Can be:
+                - String: "low" (5), "medium" (10), "high" (20), "highest" (50)
+                - Integer: Custom number of points (minimum 3)
         """
         self.polyhedron_type = polyhedron_type
         self.radius = radius
         self.font_path = font_path
         self.text_depth = text_depth
         self.text_size = text_size
+        self.curve_resolution = resolve_curve_resolution(curve_resolution)
 
         # Set number layout
         if number_layout is None:
@@ -155,6 +192,7 @@ class DiceGeometry:
                     text_depth=self.text_depth,
                     text_size=self.text_size,
                     font_path=self.font_path,
+                    curve_resolution=self.curve_resolution,
                 )
                 logger.debug(f"Successfully engraved number {number} on face {i + 1}/{max_faces}")
             except Exception as e:
@@ -222,6 +260,7 @@ class DiceGeometry:
             "font_path": self.font_path,
             "text_depth": self.text_depth,
             "text_size": self.text_size,
+            "curve_resolution": self.curve_resolution,
         }
 
 
@@ -238,7 +277,8 @@ def create_standard_dice(
         sides: Number of sides (4, 6, 8, 10, 12, or 20)
         radius: Radius of the dice in mm
         output_path: If provided, export STL to this path
-        **kwargs: Additional arguments passed to DiceGeometry
+        **kwargs: Additional arguments passed to DiceGeometry, including:
+            - curve_resolution: "low", "medium", "high", "highest", or integer
 
     Returns:
         DiceGeometry object

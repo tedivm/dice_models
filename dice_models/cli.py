@@ -42,6 +42,12 @@ def generate(
     font_path: Optional[str] = typer.Option(None, "--font", "-f", help="Path to TTF font file"),
     text_depth: float = typer.Option(0.5, "--text-depth", help="Depth of number engraving in mm"),
     text_size: float = typer.Option(3.0, "--text-size", help="Size of numbers in mm"),
+    curve_resolution: str = typer.Option(
+        "high", 
+        "--curve-resolution", 
+        "-q", 
+        help="Curve quality: 'low', 'medium', 'high', 'highest', or integer"
+    ),
     no_numbers: bool = typer.Option(False, "--no-numbers", help="Generate dice without numbers"),
     custom_layout: Optional[str] = typer.Option(
         None,
@@ -53,6 +59,13 @@ def generate(
     try:
         # Parse custom layout if provided
         number_layout = _parse_custom_layout(custom_layout)
+        
+        # Parse curve resolution - try as integer first, then as string
+        parsed_curve_resolution: str | int
+        try:
+            parsed_curve_resolution = int(curve_resolution)
+        except ValueError:
+            parsed_curve_resolution = curve_resolution
 
         # Create the dice
         dice = create_standard_dice(
@@ -62,6 +75,7 @@ def generate(
             font_path=font_path,
             text_depth=text_depth,
             text_size=text_size,
+            curve_resolution=parsed_curve_resolution,
         )
 
         # Export to STL
