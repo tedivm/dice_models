@@ -4,17 +4,21 @@ requires = ["setuptools>=67.0", "setuptools_scm[toml]>=7.1"]
 
 [project]
 authors = [{"name" = "Robert Hafner"}]
+dependencies = [
+  "fastapi",
+  "fonttools",
+  "numpy",
+  "numpy-stl",
+  "pydantic~=2.0",
+  "pydantic-settings",
+  "trimesh[easy]",
+  "typer",
+]
 description = ""
 dynamic = ["version"]
 license = {"file" = "LICENSE"}
 name = "dice_models"
 readme = {file = "README.md", content-type = "text/markdown"}
-dependencies = [
-  "fastapi",
-  "pydantic~=2.0",
-  "pydantic-settings",
-  "typer"
-]
 
 [project.optional-dependencies]
 dev = [
@@ -29,19 +33,19 @@ dev = [
   "ruamel.yaml",
   "ruff",
   "toml-sort",
-  "uv"
+  "uv",
 ]
 
 [project.scripts]
 dice_models = "dice_models.cli:app"
 
 [tool.coverage.run]
+concurrency = ["thread", "greenlet"]
 omit = [
   "./dice_models/_version.py",
   "./dice_models/__init__.py",
-  "./tests/*"
+  "./tests/*",
 ]
-concurrency = ["thread", "greenlet"]
 
 [tool.mypy]
 plugins = ["pydantic.mypy"]

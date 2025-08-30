@@ -1,0 +1,609 @@
+"""Text rendering and geometry conversion for dice numbers using actual fonts."""
+
+import logging
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+import numpy as np
+import trimesh
+
+try:
+    import triangle
+    from fontTools.pens.basePen import BasePen
+    from fontTools.ttLib import TTFont
+
+    FONT_TOOLS_AVAILABLE = True
+except ImportError:
+    FONT_TOOLS_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
+
+# Default system font paths to try for fallback
+DEFAULT_FONT_PATHS = [
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf",  # macOS
+    "/System/Library/Fonts/Supplemental/Arial.ttf",  # macOS
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+    "C:/Windows/Fonts/arialbd.ttf",  # Windows
+    "C:/Windows/Fonts/arial.ttf",  # Windows
+]
+
+
+def create_engraved_text(
+    base_mesh: trimesh.Trimesh,
+    text: str,
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+    text_depth: float = 0.05,
+    text_size: float = 0.3,
+    font_path: Optional[str] = None,
+) -> trimesh.Trimesh:
+    """
+    Create engraved text on a mesh face using actual font rendering.
+
+    Args:
+        base_mesh: The base mesh to engrave into
+        text: Text to engrave (can be numbers, letters, symbols)
+        face_center: Center point of the face to engrave on
+        face_normal: Normal vector of the face
+        text_depth: How deep to make the engraving
+        text_size: Size of the text
+        font_path: Path to TTF font file
+
+    Returns:
+        Mesh with the text engraved
+    """
+    try:
+        # Calculate appropriate scaling based on mesh size
+        mesh_bounds = base_mesh.bounds
+        mesh_size = np.linalg.norm(mesh_bounds[1] - mesh_bounds[0])
+
+        # Scale text appropriately for the dice face
+        face_size = mesh_size / 3.0  # Approximate face size
+        actual_text_size = min(text_size, face_size * 0.4)  # Max 40% of face size
+        actual_depth = max(text_depth, mesh_size * 0.02)  # At least 2% of mesh size
+
+        logger.debug(
+            f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}"
+        )
+
+        # Create 3D text geometry from font
+        text_mesh = _create_font_text_mesh(
+            text, actual_text_size, actual_depth, font_path
+        )
+
+        if text_mesh is None:
+            logger.warning(f"Failed to create text mesh for '{text}'")
+            return base_mesh
+
+        # Position and orient the text on the face
+        text_mesh = _position_text_on_face(
+            text_mesh, face_center, face_normal, actual_depth
+        )
+
+        # Perform boolean difference to engrave
+        try:
+            # Ensure base mesh is watertight and has positive volume
+            if not base_mesh.is_watertight:
+                base_mesh.fill_holes()
+            if base_mesh.volume < 0:
+                base_mesh.invert()
+
+            # Fix and validate text mesh more thoroughly
+            text_mesh = _ensure_valid_volume_mesh(text_mesh)
+            if text_mesh is None:
+                logger.warning(f"Could not create valid volume mesh for text '{text}'")
+                return base_mesh
+
+            # Perform the engraving operation
+            result = base_mesh.difference(text_mesh)
+
+            if result.is_empty or len(result.vertices) == 0:
+                logger.warning(
+                    f"Boolean difference failed for text '{text}', returning original mesh"
+                )
+                return base_mesh
+
+            # Ensure result is properly oriented and cleaned
+            if result.volume < 0:
+                result.invert()
+
+            # Clean up the result mesh to prevent accumulation of complexity
+            try:
+                result.update_faces(result.nondegenerate_faces())
+                result.update_faces(result.unique_faces())
+                result.remove_unreferenced_vertices()
+                result.fix_normals()
+
+                # Ensure it remains watertight
+                if not result.is_watertight:
+                    result.fill_holes()
+
+            except Exception as cleanup_error:
+                logger.debug(f"Mesh cleanup warning: {cleanup_error}")
+
+            logger.debug(
+                f"Successfully engraved text '{text}': {len(result.vertices)} vertices"
+            )
+            return result
+
+        except Exception as bool_error:
+            logger.warning(f"Boolean operation failed for text '{text}': {bool_error}")
+            return base_mesh
+
+    except Exception as e:
+        logger.exception(f"Failed to engrave text '{text}': {e}")
+        return base_mesh
+
+
+def _create_font_text_mesh(
+    text: str, size: float, depth: float, font_path: Optional[str] = None
+) -> Optional[trimesh.Trimesh]:
+    """
+    Create a 3D mesh from text using actual font rendering.
+
+    Args:
+        text: The text to render
+        size: Size of the text
+        depth: Depth of extrusion
+        font_path: Path to font file
+
+    Returns:
+        3D mesh of the text or None if failed
+    """
+    if not FONT_TOOLS_AVAILABLE:
+        logger.warning(
+            "fontTools or triangle not available, falling back to simple geometry"
+        )
+        return _create_fallback_text_mesh(text, size, depth)
+
+    # Use provided font or try to find a system font
+    if font_path and Path(font_path).exists():
+        actual_font_path = font_path
+    else:
+        # Try to find a default font
+        actual_font_path = _find_default_font()
+        if not actual_font_path:
+            logger.warning("No font available, falling back to simple geometry")
+            return _create_fallback_text_mesh(text, size, depth)
+
+    try:
+        return _create_font_based_mesh(text, size, depth, actual_font_path)
+    except Exception as e:
+        logger.warning(f"Font-based rendering failed: {e}")
+        return _create_fallback_text_mesh(text, size, depth)
+
+
+def _find_default_font() -> Optional[str]:
+    """Find a default font to use."""
+    # Try common system fonts
+    system_fonts = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf",  # macOS
+        "/System/Library/Fonts/Supplemental/Arial.ttf",  # macOS
+        "/System/Library/Fonts/HelveticaNeue.ttc",  # macOS
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+        "C:\\Windows\\Fonts\\arial.ttf",  # Windows
+    ]
+
+    for font_path in system_fonts:
+        if Path(font_path).exists():
+            return font_path
+
+    return None
+
+
+class PathRecorderPen(BasePen):
+    """A pen that records font outline paths as coordinates."""
+
+    def __init__(self, glyphSet=None):
+        super().__init__(glyphSet)
+        self.paths = []
+        self.current_path = []
+
+    def moveTo(self, pt):
+        if self.current_path:
+            self.paths.append(self.current_path)
+        self.current_path = [pt]
+
+    def lineTo(self, pt):
+        self.current_path.append(pt)
+
+    def curveTo(self, *points):
+        # Approximate curves with line segments
+        if len(points) >= 1:
+            # Add the final point of the curve
+            self.current_path.append(points[-1])
+            # For better approximation, could add intermediate points here
+
+    def qCurveTo(self, *points):
+        # Handle quadratic curves
+        if len(points) >= 1:
+            self.current_path.append(points[-1])
+
+    def closePath(self):
+        if self.current_path and len(self.current_path) > 2:
+            # Close the path by connecting back to start
+            self.current_path.append(self.current_path[0])
+            self.paths.append(self.current_path)
+            self.current_path = []
+
+    def endPath(self):
+        if self.current_path:
+            self.paths.append(self.current_path)
+            self.current_path = []
+
+
+def _create_font_based_mesh(
+    text: str, size: float, depth: float, font_path: str
+) -> trimesh.Trimesh:
+    """
+    Create 3D text mesh using actual font outlines.
+    """
+    # Load font
+    font = TTFont(font_path)
+    glyph_set = font.getGlyphSet()
+    cmap = font.getBestCmap()
+
+    # Get font metrics for scaling
+    units_per_em = font["head"].unitsPerEm
+    scale = size / units_per_em
+
+    all_paths = []
+    x_offset = 0
+
+    for char in text:
+        char_code = ord(char)
+        if char_code not in cmap:
+            # Skip characters not in font
+            x_offset += size * 0.6  # Add space for missing character
+            continue
+
+        glyph_name = cmap[char_code]
+        glyph = glyph_set[glyph_name]
+
+        # Extract glyph outline using our custom pen
+        pen = PathRecorderPen()
+        glyph.draw(pen)
+
+        # Convert paths to our coordinate system
+        for path in pen.paths:
+            if len(path) >= 3:  # Need at least 3 points for a valid path
+                scaled_path = []
+                for x, y in path:
+                    scaled_x = (x + x_offset) * scale
+                    scaled_y = y * scale
+                    scaled_path.append((scaled_x, scaled_y))
+                all_paths.append(scaled_path)
+
+        # Advance to next character position
+        if hasattr(glyph, "width") and glyph.width:
+            x_offset += glyph.width
+        else:
+            x_offset += units_per_em * 0.6  # Default character width
+
+    if not all_paths:
+        # No valid paths found
+        return _create_fallback_text_mesh(text, size, depth)
+
+    # Convert 2D paths to 3D mesh
+    try:
+        return _paths_to_3d_mesh(all_paths, depth)
+    except Exception as e:
+        logger.warning(f"Failed to convert paths to 3D mesh: {e}")
+        return _create_fallback_text_mesh(text, size, depth)
+
+
+def _paths_to_3d_mesh(
+    paths: List[List[Tuple[float, float]]], depth: float
+) -> trimesh.Trimesh:
+    """
+    Convert 2D font paths to a 3D mesh using proper triangulation.
+    """
+    if not paths:
+        raise ValueError("No paths to convert")
+
+    # Collect all vertices and segments for triangulation
+    all_vertices = []
+    all_segments = []
+    vertex_map = {}  # To avoid duplicate vertices
+
+    for path in paths:
+        # Add vertices from this path
+        for i, (x, y) in enumerate(path):
+            vertex_key = (
+                round(x, 6),
+                round(y, 6),
+            )  # Round to avoid floating point issues
+            if vertex_key not in vertex_map:
+                vertex_map[vertex_key] = len(all_vertices)
+                all_vertices.append([x, y])
+
+            # Add segment to next vertex (except for last vertex)
+            if i < len(path) - 1:
+                v1_idx = vertex_map[vertex_key]
+                next_key = (round(path[i + 1][0], 6), round(path[i + 1][1], 6))
+                if next_key not in vertex_map:
+                    vertex_map[next_key] = len(all_vertices)
+                    all_vertices.append([path[i + 1][0], path[i + 1][1]])
+                v2_idx = vertex_map[next_key]
+                all_segments.append([v1_idx, v2_idx])
+
+    if len(all_vertices) < 3:
+        # Not enough vertices for triangulation, create simple rectangle
+        return _create_simple_text_box(paths, depth)
+
+    # Prepare triangulation input
+    vertices_array = np.array(all_vertices)
+    segments_array = np.array(all_segments) if all_segments else None
+
+    # Perform constrained Delaunay triangulation
+    try:
+        triangulation_input = {
+            "vertices": vertices_array,
+        }
+
+        if segments_array is not None and len(segments_array) > 0:
+            triangulation_input["segments"] = segments_array
+
+        # Use triangle library for proper 2D triangulation
+        triangulated = triangle.triangulate(triangulation_input, "p")  # 'p' for polygon
+
+        if "triangles" not in triangulated or len(triangulated["triangles"]) == 0:
+            # Triangulation failed, fall back to simple box
+            return _create_simple_text_box(paths, depth)
+
+        # Extract triangulated 2D mesh
+        vertices_2d = triangulated["vertices"]
+        faces_2d = triangulated["triangles"]
+
+        # Extrude to 3D
+        return _extrude_2d_to_3d(vertices_2d, faces_2d, depth)
+
+    except Exception as e:
+        logger.warning(f"Triangulation failed: {e}")
+        return _create_simple_text_box(paths, depth)
+
+
+def _create_simple_text_box(
+    paths: List[List[Tuple[float, float]]], depth: float
+) -> trimesh.Trimesh:
+    """Create a simple bounding box for text when triangulation fails."""
+    # Find bounding box of all paths
+    all_points = []
+    for path in paths:
+        all_points.extend(path)
+
+    if not all_points:
+        return trimesh.creation.box(extents=[1.0, 1.0, depth])
+
+    xs, ys = zip(*all_points)
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    width = max_x - min_x if max_x > min_x else 1.0
+    height = max_y - min_y if max_y > min_y else 1.0
+
+    # Create box centered on the text
+    box = trimesh.creation.box(extents=[width, height, depth])
+    box.apply_translation([(min_x + max_x) / 2, (min_y + max_y) / 2, 0])
+
+    return box
+
+
+def _extrude_2d_to_3d(
+    vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float
+) -> trimesh.Trimesh:
+    """Extrude 2D triangulated mesh to create 3D text volume."""
+    if len(vertices_2d) == 0:
+        return trimesh.creation.box(extents=[1.0, 1.0, depth])
+
+    # Create bottom vertices (z=0)
+    bottom_vertices = np.column_stack([vertices_2d, np.zeros(len(vertices_2d))])
+
+    # Create top vertices (z=depth)
+    top_vertices = np.column_stack([vertices_2d, np.full(len(vertices_2d), depth)])
+
+    # Combine all vertices
+    all_vertices = np.vstack([bottom_vertices, top_vertices])
+
+    num_2d_vertices = len(vertices_2d)
+    all_faces = []
+
+    # Bottom faces (reverse winding for outward normals)
+    for face in faces_2d:
+        all_faces.append([face[2], face[1], face[0]])
+
+    # Top faces (normal winding)
+    for face in faces_2d:
+        all_faces.append(
+            [
+                face[0] + num_2d_vertices,
+                face[1] + num_2d_vertices,
+                face[2] + num_2d_vertices,
+            ]
+        )
+
+    # Side faces (connect edges of bottom and top)
+    # Find boundary edges
+    edge_count = {}
+    for face in faces_2d:
+        for i in range(3):
+            edge = tuple(sorted([face[i], face[(i + 1) % 3]]))
+            edge_count[edge] = edge_count.get(edge, 0) + 1
+
+    # Boundary edges appear only once
+    boundary_edges = [edge for edge, count in edge_count.items() if count == 1]
+
+    # Create side faces for boundary edges
+    for v1, v2 in boundary_edges:
+        # Two triangles for each side edge
+        all_faces.extend(
+            [
+                [v1, v2, v2 + num_2d_vertices],
+                [v1, v2 + num_2d_vertices, v1 + num_2d_vertices],
+            ]
+        )
+
+    # Create the final mesh
+    text_mesh = trimesh.Trimesh(vertices=all_vertices, faces=np.array(all_faces))
+
+    # Clean up and validate the mesh thoroughly
+    try:
+        text_mesh.update_faces(text_mesh.unique_faces())
+        text_mesh.remove_unreferenced_vertices()
+        text_mesh.update_faces(text_mesh.nondegenerate_faces())
+        text_mesh.fix_normals()
+
+        if not text_mesh.is_watertight:
+            text_mesh.fill_holes()
+
+        # If still not watertight, try more aggressive fixing
+        if not text_mesh.is_watertight:
+            # Try to merge nearby vertices
+            text_mesh.merge_vertices()
+            text_mesh.update_faces(text_mesh.nondegenerate_faces())
+            text_mesh.fix_normals()
+
+            if not text_mesh.is_watertight:
+                text_mesh.fill_holes()
+
+        # Ensure positive volume
+        if text_mesh.volume < 0:
+            text_mesh.invert()
+
+    except Exception as e:
+        logger.warning(f"Mesh cleanup failed: {e}")
+
+    return text_mesh
+
+
+def _ensure_valid_volume_mesh(mesh: trimesh.Trimesh) -> Optional[trimesh.Trimesh]:
+    """
+    Ensure a mesh is a valid volume (watertight, positive volume, valid geometry).
+
+    Args:
+        mesh: Input mesh to validate and fix
+
+    Returns:
+        Fixed mesh or None if unfixable
+    """
+    if mesh is None:
+        return None
+
+    try:
+        # Remove degenerate faces
+        mesh.update_faces(mesh.nondegenerate_faces())
+        mesh.update_faces(mesh.unique_faces())
+        mesh.remove_unreferenced_vertices()
+
+        # Fix winding and normals
+        mesh.fix_normals()
+
+        # Try to make watertight
+        if not mesh.is_watertight:
+            mesh.fill_holes()
+
+        # Check if it's still not watertight
+        if not mesh.is_watertight:
+            logger.debug("Mesh is not watertight after fill_holes, trying convex hull")
+            # For simple text, try using convex hull as last resort
+            try:
+                mesh = mesh.convex_hull
+            except Exception:
+                return None
+
+        # Ensure positive volume
+        if mesh.volume <= 0:
+            if abs(mesh.volume) > 1e-10:  # Only invert if volume is significant
+                mesh.invert()
+            else:
+                # Volume is essentially zero, mesh is degenerate
+                return None
+
+        # Final validation
+        if not mesh.is_watertight or mesh.volume <= 0:
+            return None
+
+        return mesh
+
+    except Exception as e:
+        logger.debug(f"Failed to fix mesh: {e}")
+        return None
+
+
+def _create_fallback_text_mesh(text: str, size: float, depth: float) -> trimesh.Trimesh:
+    """
+    Create simple fallback text mesh when font rendering fails.
+    """
+    # Create a simple rectangle based on text length
+    width = size * len(text) * 0.7
+    height = size * 0.8
+
+    fallback = trimesh.creation.box(extents=[width, height, depth])
+    fallback.fix_normals()
+
+    return fallback
+
+
+def _position_text_on_face(
+    text_mesh: trimesh.Trimesh,
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+    depth: float,
+) -> trimesh.Trimesh:
+    """
+    Position and orient text mesh on the dice face.
+    """
+    # Center the text mesh at origin first
+    text_bounds = text_mesh.bounds
+    text_center = (text_bounds[0] + text_bounds[1]) / 2
+    text_mesh.apply_translation(-text_center)
+
+    # Align text with face normal
+    face_normal = np.array(face_normal) / np.linalg.norm(face_normal)
+    z_axis = np.array([0, 0, 1])
+
+    if not np.allclose(face_normal, z_axis):
+        # Calculate rotation to align Z-axis with face normal
+        rotation_axis = np.cross(z_axis, face_normal)
+        if np.linalg.norm(rotation_axis) > 1e-6:
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
+            rotation_matrix = trimesh.transformations.rotation_matrix(
+                rotation_angle, rotation_axis
+            )
+            text_mesh.apply_transform(rotation_matrix)
+
+    # Position text to intersect with the face for proper boolean difference
+    # Use a more conservative approach: position text to partially penetrate the dice
+    # The face_center is ON the surface, face_normal points OUTWARD
+    # Move text slightly INTO the dice (opposite to outward normal) so it intersects properly
+    penetration_depth = min(depth * 0.3, 0.5)  # Conservative penetration
+    text_position = face_center - face_normal * penetration_depth
+    text_mesh.apply_translation(text_position)
+
+    return text_mesh
+
+
+# Legacy function for backward compatibility
+def create_engraved_number(
+    base_mesh: trimesh.Trimesh,
+    number: int,
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+    text_depth: float = 0.05,
+    text_size: float = 0.3,
+    font_path: Optional[str] = None,
+) -> trimesh.Trimesh:
+    """
+    Legacy function - now calls the proper font-based text engraving.
+    """
+    return create_engraved_text(
+        base_mesh=base_mesh,
+        text=str(number),
+        face_center=face_center,
+        face_normal=face_normal,
+        text_depth=text_depth,
+        text_size=text_size,
+        font_path=font_path,
+    )

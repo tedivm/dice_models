@@ -1,0 +1,46 @@
+{
+  "dice": [
+    {
+      "sides": 4,
+      "filename": "set_d4.stl",
+      "radius": 8.0,
+      "text_depth": 0.4,
+      "text_size": 2.5
+    },
+    {
+      "sides": 6,
+      "filename": "set_d6.stl",
+      "radius": 10.0,
+      "text_depth": 0.5,
+      "text_size": 3.0
+    },
+    {
+      "sides": 8,
+      "filename": "set_d8.stl",
+      "radius": 10.0,
+      "text_depth": 0.5,
+      "text_size": 3.0
+    },
+    {
+      "sides": 10,
+      "filename": "set_d10.stl",
+      "radius": 10.0,
+      "text_depth": 0.5,
+      "text_size": 3.0
+    },
+    {
+      "sides": 12,
+      "filename": "set_d12.stl",
+      "radius": 12.0,
+      "text_depth": 0.6,
+      "text_size": 3.5
+    },
+    {
+      "sides": 20,
+      "filename": "set_d20.stl",
+      "radius": 15.0,
+      "text_depth": 0.8,
+      "text_size": 4.0
+    }
+  ]
+}
