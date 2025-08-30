@@ -3,17 +3,70 @@
 annotated-types==0.7.0
     # via pydantic
 anyio==4.10.0
-    # via starlette
+    # via
+    #   httpx
+    #   starlette
+attrs==25.3.0
+    # via
+    #   jsonschema
+    #   referencing
+certifi==2025.8.3
+    # via
+    #   httpcore
+    #   httpx
+charset-normalizer==3.4.3
+    # via trimesh
 click==8.2.1
     # via typer
+colorlog==6.9.0
+    # via trimesh
 fastapi==0.116.1
     # via dice-models (pyproject.toml)
+fonttools==4.59.2
+    # via dice-models (pyproject.toml)
+h11==0.16.0
+    # via httpcore
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via trimesh
 idna==3.10
-    # via anyio
+    # via
+    #   anyio
+    #   httpx
+jsonschema==4.25.1
+    # via trimesh
+jsonschema-specifications==2025.4.1
+    # via jsonschema
+lxml==6.0.1
+    # via trimesh
+manifold3d==3.2.1
+    # via trimesh
+mapbox-earcut==1.0.3
+    # via trimesh
 markdown-it-py==4.0.0
     # via rich
 mdurl==0.1.2
     # via markdown-it-py
+networkx==3.5
+    # via trimesh
+numpy==2.3.2
+    # via
+    #   dice-models (pyproject.toml)
+    #   manifold3d
+    #   mapbox-earcut
+    #   numpy-stl
+    #   pycollada
+    #   scipy
+    #   shapely
+    #   trimesh
+    #   vhacdx
+numpy-stl==3.2.0
+    # via dice-models (pyproject.toml)
+pillow==11.3.0
+    # via trimesh
+pycollada==0.9.2
+    # via trimesh
 pydantic==2.11.7
     # via
     #   dice-models (pyproject.toml)
@@ -25,26 +78,55 @@ pydantic-settings==2.10.1
     # via dice-models (pyproject.toml)
 pygments==2.19.2
     # via rich
+python-dateutil==2.9.0.post0
+    # via pycollada
 python-dotenv==1.1.1
     # via pydantic-settings
+python-utils==3.9.1
+    # via numpy-stl
+referencing==0.36.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 rich==14.1.0
     # via typer
+rpds-py==0.27.1
+    # via
+    #   jsonschema
+    #   referencing
+rtree==1.4.1
+    # via trimesh
+scipy==1.16.1
+    # via trimesh
+shapely==2.1.1
+    # via trimesh
 shellingham==1.5.4
     # via typer
+six==1.17.0
+    # via python-dateutil
 sniffio==1.3.1
     # via anyio
 starlette==0.47.3
     # via fastapi
-typer==0.16.1
+svg-path==7.0
+    # via trimesh
+trimesh==4.7.4
+    # via dice-models (pyproject.toml)
+typer==0.17.3
     # via dice-models (pyproject.toml)
 typing-extensions==4.15.0
     # via
     #   fastapi
     #   pydantic
     #   pydantic-core
+    #   python-utils
     #   typer
     #   typing-inspection
 typing-inspection==0.4.1
     # via
     #   pydantic
     #   pydantic-settings
+vhacdx==0.0.8.post2
+    # via trimesh
+xxhash==3.5.0
+    # via trimesh

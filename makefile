@@ -80,11 +80,11 @@ tests: install pytest ruff_check black_check mypy_check dapperdata_check tomlsor
 
 .PHONY: pytest
 pytest:
-	$(PYTHON) -m pytest --cov=./${PACKAGE_SLUG} --cov-report=term-missing tests
+	$(PYTHON) -m pytest -n auto --cov=./${PACKAGE_SLUG} --cov-report=term-missing tests
 
 .PHONY: pytest_loud
 pytest_loud:
-	$(PYTHON) -m pytest --log-cli-level=DEBUG -log_cli=true --cov=./${PACKAGE_SLUG} --cov-report=term-missing tests
+	$(PYTHON) -m pytest -n auto --log-cli-level=DEBUG -log_cli=true --cov=./${PACKAGE_SLUG} --cov-report=term-missing tests
 
 .PHONY: ruff_check
 ruff_check:
