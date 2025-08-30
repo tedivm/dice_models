@@ -12,7 +12,7 @@ dependencies = [
   "pydantic~=2.0",
   "pydantic-settings",
   "trimesh[easy]",
-  "typer",
+  "typer"
 ]
 description = ""
 dynamic = ["version"]
@@ -33,7 +33,7 @@ dev = [
   "ruamel.yaml",
   "ruff",
   "toml-sort",
-  "uv",
+  "uv"
 ]
 
 [project.scripts]
@@ -44,7 +44,7 @@ concurrency = ["thread", "greenlet"]
 omit = [
   "./dice_models/_version.py",
   "./dice_models/__init__.py",
-  "./tests/*",
+  "./tests/*"
 ]
 
 [tool.mypy]

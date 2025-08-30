@@ -22,9 +22,7 @@ class PolyhedronGeometry:
     """Base class for polyhedron geometry calculations."""
 
     @staticmethod
-    def get_vertices_and_faces(
-        polyhedron_type: PolyhedronType, radius: float = 1.0
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_vertices_and_faces(polyhedron_type: PolyhedronType, radius: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get vertices and faces for a given polyhedron type.
 

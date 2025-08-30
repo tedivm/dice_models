@@ -34,9 +34,7 @@ def demo_basic_dice_creation():
 
     for sides in dice_types:
         print(f"\nCreating D{sides}...")
-        dice = create_standard_dice(
-            sides=sides, radius=10.0, output_path=output_dir / f"standard_d{sides}.stl"
-        )
+        dice = create_standard_dice(sides=sides, radius=10.0, output_path=output_dir / f"standard_d{sides}.stl")
 
         info = dice.get_info()
         print(f"  ✓ {info['type']} with {info['sides']} sides")
@@ -196,7 +194,7 @@ def demo_font_specification():
 
         for i, font_path in enumerate(available_fonts):
             font_name = Path(font_path).stem
-            print(f"\nUsing font {i+1}: {font_name}")
+            print(f"\nUsing font {i + 1}: {font_name}")
             print(f"  Path: {font_path}")
 
             d6_font = DiceGeometry(
@@ -206,9 +204,7 @@ def demo_font_specification():
                 text_depth=0.8,  # Deeper for better visibility
                 text_size=4.0,  # Larger for better comparison
             )
-            output_file = (
-                output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
-            )
+            output_file = output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
             d6_font.export_stl(output_file)
             print(f"  ✓ D6 created: {output_file.name}")
 

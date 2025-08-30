@@ -63,23 +63,17 @@ def create_engraved_text(
         actual_text_size = min(text_size, face_size * 0.4)  # Max 40% of face size
         actual_depth = max(text_depth, mesh_size * 0.02)  # At least 2% of mesh size
 
-        logger.debug(
-            f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}"
-        )
+        logger.debug(f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}")
 
         # Create 3D text geometry from font
-        text_mesh = _create_font_text_mesh(
-            text, actual_text_size, actual_depth, font_path
-        )
+        text_mesh = _create_font_text_mesh(text, actual_text_size, actual_depth, font_path)
 
         if text_mesh is None:
             logger.warning(f"Failed to create text mesh for '{text}'")
             return base_mesh
 
         # Position and orient the text on the face
-        text_mesh = _position_text_on_face(
-            text_mesh, face_center, face_normal, actual_depth
-        )
+        text_mesh = _position_text_on_face(text_mesh, face_center, face_normal, actual_depth)
 
         # Perform boolean difference to engrave
         try:
@@ -99,9 +93,7 @@ def create_engraved_text(
             result = base_mesh.difference(text_mesh)
 
             if result.is_empty or len(result.vertices) == 0:
-                logger.warning(
-                    f"Boolean difference failed for text '{text}', returning original mesh"
-                )
+                logger.warning(f"Boolean difference failed for text '{text}', returning original mesh")
                 return base_mesh
 
             # Ensure result is properly oriented and cleaned
@@ -122,9 +114,7 @@ def create_engraved_text(
             except Exception as cleanup_error:
                 logger.debug(f"Mesh cleanup warning: {cleanup_error}")
 
-            logger.debug(
-                f"Successfully engraved text '{text}': {len(result.vertices)} vertices"
-            )
+            logger.debug(f"Successfully engraved text '{text}': {len(result.vertices)} vertices")
             return result
 
         except Exception as bool_error:
@@ -152,9 +142,7 @@ def _create_font_text_mesh(
         3D mesh of the text or None if failed
     """
     if not FONT_TOOLS_AVAILABLE:
-        logger.warning(
-            "fontTools or triangle not available, falling back to simple geometry"
-        )
+        logger.warning("fontTools or triangle not available, falling back to simple geometry")
         return _create_fallback_text_mesh(text, size, depth)
 
     # Use provided font or try to find a system font
@@ -233,9 +221,7 @@ class PathRecorderPen(BasePen):
             self.current_path = []
 
 
-def _create_font_based_mesh(
-    text: str, size: float, depth: float, font_path: str
-) -> trimesh.Trimesh:
+def _create_font_based_mesh(text: str, size: float, depth: float, font_path: str) -> trimesh.Trimesh:
     """
     Create 3D text mesh using actual font outlines.
     """
@@ -293,9 +279,7 @@ def _create_font_based_mesh(
         return _create_fallback_text_mesh(text, size, depth)
 
 
-def _paths_to_3d_mesh(
-    paths: List[List[Tuple[float, float]]], depth: float
-) -> trimesh.Trimesh:
+def _paths_to_3d_mesh(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
     """
     Convert 2D font paths to a 3D mesh using proper triangulation with hole support.
     """
@@ -304,7 +288,7 @@ def _paths_to_3d_mesh(
 
     # Separate outer boundaries from holes based on winding order and area
     boundaries, holes = _separate_boundaries_and_holes(paths)
-    
+
     if not boundaries:
         # No valid boundaries found, create simple box
         return _create_simple_text_box(paths, depth)
@@ -322,7 +306,7 @@ def _paths_to_3d_mesh(
     # Add hole paths and mark hole points
     for hole in holes:
         _add_path_to_triangulation(hole, all_vertices, all_segments, vertex_map)
-        
+
         # Add a point inside the hole for triangulation
         hole_center = _calculate_path_centroid(hole)
         if hole_center and _point_in_polygon(hole_center, hole):
@@ -353,7 +337,7 @@ def _paths_to_3d_mesh(
         flags = "pq30"  # polygon, quality 30 degrees minimum angle
         if hole_points:
             flags += "a0.1"  # small area constraint for better hole handling
-            
+
         triangulated = triangle.triangulate(triangulation_input, flags)
 
         if "triangles" not in triangulated or len(triangulated["triangles"]) == 0:
@@ -372,62 +356,66 @@ def _paths_to_3d_mesh(
         return _create_simple_text_box(paths, depth)
 
 
-def _separate_boundaries_and_holes(paths: List[List[Tuple[float, float]]]) -> Tuple[List[List[Tuple[float, float]]], List[List[Tuple[float, float]]]]:
+def _separate_boundaries_and_holes(
+    paths: List[List[Tuple[float, float]]],
+) -> Tuple[List[List[Tuple[float, float]]], List[List[Tuple[float, float]]]]:
     """
     Separate font paths into outer boundaries and inner holes based on winding order and containment.
-    
+
     Returns:
         Tuple of (boundaries, holes)
     """
     if not paths:
         return [], []
-    
+
     # Calculate area and winding for each path
     path_info = []
     for i, path in enumerate(paths):
         if len(path) < 3:
             continue
-            
+
         area = _calculate_polygon_area(path)
         winding = 1 if area > 0 else -1  # Positive area = CCW, negative = CW
-        path_info.append({
-            'index': i,
-            'path': path,
-            'area': abs(area),
-            'winding': winding,
-            'bbox': _calculate_bbox(path)
-        })
-    
+        path_info.append(
+            {
+                "index": i,
+                "path": path,
+                "area": abs(area),
+                "winding": winding,
+                "bbox": _calculate_bbox(path),
+            }
+        )
+
     if not path_info:
         return [], []
-    
+
     # Sort by area (largest first) to process outer boundaries before holes
-    path_info.sort(key=lambda x: x['area'], reverse=True)
-    
+    path_info.sort(key=lambda x: x["area"], reverse=True)
+
     boundaries = []
     holes = []
-    
+
     for info in path_info:
-        path = info['path']
-        
+        path = info["path"]
+
         # Check if this path is contained within any existing boundary
         is_hole = False
-        for boundary_info in [p for p in path_info if p['area'] > info['area']]:
-            if _path_contains_path(boundary_info['path'], path):
+        for boundary_info in [p for p in path_info if p["area"] > info["area"]]:
+            if _path_contains_path(boundary_info["path"], path):
                 is_hole = True
                 break
-        
+
         if is_hole:
             # Ensure holes have clockwise winding (negative area)
-            if info['winding'] > 0:
+            if info["winding"] > 0:
                 path = path[::-1]  # Reverse for clockwise winding
             holes.append(path)
         else:
             # Ensure boundaries have counter-clockwise winding (positive area)
-            if info['winding'] < 0:
+            if info["winding"] < 0:
                 path = path[::-1]  # Reverse for counter-clockwise winding
             boundaries.append(path)
-    
+
     return boundaries, holes
 
 
@@ -435,22 +423,24 @@ def _calculate_polygon_area(path: List[Tuple[float, float]]) -> float:
     """Calculate signed area of a polygon using the shoelace formula."""
     if len(path) < 3:
         return 0.0
-    
+
     area = 0.0
     n = len(path)
     for i in range(n):
         j = (i + 1) % n
         area += path[i][0] * path[j][1]
         area -= path[j][0] * path[i][1]
-    
+
     return area / 2.0
 
 
-def _calculate_bbox(path: List[Tuple[float, float]]) -> Tuple[float, float, float, float]:
+def _calculate_bbox(
+    path: List[Tuple[float, float]],
+) -> Tuple[float, float, float, float]:
     """Calculate bounding box of a path."""
     if not path:
         return 0, 0, 0, 0
-    
+
     xs, ys = zip(*path)
     return min(xs), min(ys), max(xs), max(ys)
 
@@ -459,42 +449,48 @@ def _path_contains_path(outer_path: List[Tuple[float, float]], inner_path: List[
     """Check if outer_path contains inner_path using bounding box and point-in-polygon tests."""
     if not outer_path or not inner_path:
         return False
-    
+
     # Quick bounding box test first
     outer_bbox = _calculate_bbox(outer_path)
     inner_bbox = _calculate_bbox(inner_path)
-    
+
     # Check if inner bbox is completely inside outer bbox
-    if not (outer_bbox[0] <= inner_bbox[0] and inner_bbox[2] <= outer_bbox[2] and
-            outer_bbox[1] <= inner_bbox[1] and inner_bbox[3] <= outer_bbox[3]):
+    if not (
+        outer_bbox[0] <= inner_bbox[0]
+        and inner_bbox[2] <= outer_bbox[2]
+        and outer_bbox[1] <= inner_bbox[1]
+        and inner_bbox[3] <= outer_bbox[3]
+    ):
         return False
-    
+
     # Check if center point of inner path is inside outer path
     center = _calculate_path_centroid(inner_path)
     if center:
         return _point_in_polygon(center, outer_path)
-    
+
     return False
 
 
-def _calculate_path_centroid(path: List[Tuple[float, float]]) -> Optional[Tuple[float, float]]:
+def _calculate_path_centroid(
+    path: List[Tuple[float, float]],
+) -> Optional[Tuple[float, float]]:
     """Calculate the centroid of a path."""
     if len(path) < 3:
         return None
-    
+
     area = _calculate_polygon_area(path)
     if abs(area) < 1e-10:
         return None
-    
+
     cx = cy = 0.0
     n = len(path)
-    
+
     for i in range(n):
         j = (i + 1) % n
         cross = path[i][0] * path[j][1] - path[j][0] * path[i][1]
         cx += (path[i][0] + path[j][0]) * cross
         cy += (path[i][1] + path[j][1]) * cross
-    
+
     factor = 1.0 / (6.0 * area)
     return (cx * factor, cy * factor)
 
@@ -504,7 +500,7 @@ def _point_in_polygon(point: Tuple[float, float], polygon: List[Tuple[float, flo
     x, y = point
     n = len(polygon)
     inside = False
-    
+
     p1x, p1y = polygon[0]
     for i in range(1, n + 1):
         p2x, p2y = polygon[i % n]
@@ -516,17 +512,22 @@ def _point_in_polygon(point: Tuple[float, float], polygon: List[Tuple[float, flo
                     if p1x == p2x or x <= xinters:
                         inside = not inside
         p1x, p1y = p2x, p2y
-    
+
     return inside
 
 
-def _add_path_to_triangulation(path: List[Tuple[float, float]], all_vertices: List, all_segments: List, vertex_map: dict):
+def _add_path_to_triangulation(
+    path: List[Tuple[float, float]],
+    all_vertices: List,
+    all_segments: List,
+    vertex_map: dict,
+):
     """Add a path's vertices and segments to the triangulation data structures."""
     if len(path) < 2:
         return
-    
+
     path_vertex_indices = []
-    
+
     # Add vertices from this path
     for x, y in path:
         vertex_key = (round(x, 6), round(y, 6))  # Round to avoid floating point issues
@@ -534,7 +535,7 @@ def _add_path_to_triangulation(path: List[Tuple[float, float]], all_vertices: Li
             vertex_map[vertex_key] = len(all_vertices)
             all_vertices.append([x, y])
         path_vertex_indices.append(vertex_map[vertex_key])
-    
+
     # Add segments connecting consecutive vertices
     for i in range(len(path_vertex_indices)):
         v1_idx = path_vertex_indices[i]
@@ -543,9 +544,7 @@ def _add_path_to_triangulation(path: List[Tuple[float, float]], all_vertices: Li
             all_segments.append([v1_idx, v2_idx])
 
 
-def _create_simple_text_box(
-    paths: List[List[Tuple[float, float]]], depth: float
-) -> trimesh.Trimesh:
+def _create_simple_text_box(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
     """Create a simple bounding box for text when triangulation fails."""
     # Find bounding box of all paths
     all_points = []
@@ -569,9 +568,7 @@ def _create_simple_text_box(
     return box
 
 
-def _extrude_2d_to_3d(
-    vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float
-) -> trimesh.Trimesh:
+def _extrude_2d_to_3d(vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float) -> trimesh.Trimesh:
     """Extrude 2D triangulated mesh to create 3D text volume."""
     if len(vertices_2d) == 0:
         return trimesh.creation.box(extents=[1.0, 1.0, depth])
@@ -748,9 +745,7 @@ def _position_text_on_face(
         if np.linalg.norm(rotation_axis) > 1e-6:
             rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
             rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
-            rotation_matrix = trimesh.transformations.rotation_matrix(
-                rotation_angle, rotation_axis
-            )
+            rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, rotation_axis)
             text_mesh.apply_transform(rotation_matrix)
 
     # Position text to intersect with the face for proper boolean difference

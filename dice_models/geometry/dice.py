@@ -56,15 +56,9 @@ class DiceGeometry:
             self.number_layout = number_layout
 
         # Generate base geometry
-        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(
-            polyhedron_type, radius
-        )
-        self.face_centers = PolyhedronGeometry.get_face_centers(
-            self.vertices, self.faces
-        )
-        self.face_normals = PolyhedronGeometry.get_face_normals(
-            self.vertices, self.faces
-        )
+        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(polyhedron_type, radius)
+        self.face_centers = PolyhedronGeometry.get_face_centers(self.vertices, self.faces)
+        self.face_normals = PolyhedronGeometry.get_face_normals(self.vertices, self.faces)
 
     @property
     def sides(self) -> int:
@@ -162,9 +156,7 @@ class DiceGeometry:
                     text_size=self.text_size,
                     font_path=self.font_path,
                 )
-                logger.debug(
-                    f"Successfully engraved number {number} on face {i+1}/{max_faces}"
-                )
+                logger.debug(f"Successfully engraved number {number} on face {i + 1}/{max_faces}")
             except Exception as e:
                 logger.exception(f"Failed to add number {number} to face {i}: {e}")
 
@@ -188,9 +180,7 @@ class DiceGeometry:
         dice_mesh.export(str(output_path))
         logger.info(f"Exported {self.polyhedron_type.name} dice to {output_path}")
 
-    def export_stl_numpy(
-        self, output_path: str | Path, include_numbers: bool = True
-    ) -> None:
+    def export_stl_numpy(self, output_path: str | Path, include_numbers: bool = True) -> None:
         """
         Export the dice model to an STL file using numpy-stl.
 
@@ -268,9 +258,7 @@ def create_standard_dice(
 
     if sides not in sides_to_type:
         valid_sides = list(sides_to_type.keys())
-        raise ValueError(
-            f"Invalid number of sides: {sides}. Valid options: {valid_sides}"
-        )
+        raise ValueError(f"Invalid number of sides: {sides}. Valid options: {valid_sides}")
 
     polyhedron_type = sides_to_type[sides]
     dice = DiceGeometry(polyhedron_type=polyhedron_type, radius=radius, **kwargs)

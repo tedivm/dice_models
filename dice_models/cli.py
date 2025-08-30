@@ -38,19 +38,11 @@ def version():
 def generate(
     sides: int = typer.Argument(..., help="Number of sides (4, 6, 8, 10, 12, or 20)"),
     output: str = typer.Argument(..., help="Output STL file path"),
-    radius: float = typer.Option(
-        10.0, "--radius", "-r", help="Radius of the dice in mm"
-    ),
-    font_path: Optional[str] = typer.Option(
-        None, "--font", "-f", help="Path to TTF font file"
-    ),
-    text_depth: float = typer.Option(
-        0.5, "--text-depth", help="Depth of number engraving in mm"
-    ),
+    radius: float = typer.Option(10.0, "--radius", "-r", help="Radius of the dice in mm"),
+    font_path: Optional[str] = typer.Option(None, "--font", "-f", help="Path to TTF font file"),
+    text_depth: float = typer.Option(0.5, "--text-depth", help="Depth of number engraving in mm"),
     text_size: float = typer.Option(3.0, "--text-size", help="Size of numbers in mm"),
-    no_numbers: bool = typer.Option(
-        False, "--no-numbers", help="Generate dice without numbers"
-    ),
+    no_numbers: bool = typer.Option(False, "--no-numbers", help="Generate dice without numbers"),
     custom_layout: Optional[str] = typer.Option(
         None,
         "--layout",
@@ -152,12 +144,8 @@ def list_types() -> None:
 
 @app.command(help="Generate multiple dice models.")
 def batch_generate(
-    config_file: str = typer.Argument(
-        ..., help="Path to configuration file (JSON/YAML)"
-    ),
-    output_dir: str = typer.Option(
-        "./dice_output", "--output-dir", "-o", help="Output directory"
-    ),
+    config_file: str = typer.Argument(..., help="Path to configuration file (JSON/YAML)"),
+    output_dir: str = typer.Option("./dice_output", "--output-dir", "-o", help="Output directory"),
     radius: float = typer.Option(10.0, "--radius", "-r", help="Default radius in mm"),
 ) -> None:
     """Generate multiple dice from a configuration file."""
@@ -178,9 +166,7 @@ def batch_generate(
 
                     config = yaml.safe_load(f)
                 except ImportError:
-                    typer.echo(
-                        "Error: PyYAML not installed. Install with 'pip install pyyaml'"
-                    )
+                    typer.echo("Error: PyYAML not installed. Install with 'pip install pyyaml'")
                     raise typer.Exit(1)
             else:
                 config = json.load(f)

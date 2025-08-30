@@ -29,25 +29,15 @@ class TestFontBasedEngraving:
             mesh_with_numbers = dice.generate_mesh(include_numbers=True)
 
             # Verify engraving worked
-            vertex_increase = len(mesh_with_numbers.vertices) - len(
-                mesh_no_numbers.vertices
-            )
+            vertex_increase = len(mesh_with_numbers.vertices) - len(mesh_no_numbers.vertices)
             volume_decrease = mesh_no_numbers.volume - mesh_with_numbers.volume
 
-            assert (
-                vertex_increase > 10
-            ), f"D{sides}: No significant vertex increase ({vertex_increase})"
-            assert (
-                volume_decrease > 0
-            ), f"D{sides}: No volume decrease ({volume_decrease})"
-            assert (
-                mesh_with_numbers.is_watertight
-            ), f"D{sides}: Result mesh not watertight"
+            assert vertex_increase > 10, f"D{sides}: No significant vertex increase ({vertex_increase})"
+            assert volume_decrease > 0, f"D{sides}: No volume decrease ({volume_decrease})"
+            assert mesh_with_numbers.is_watertight, f"D{sides}: Result mesh not watertight"
 
             # Verify mesh integrity
-            assert (
-                len(mesh_with_numbers.vertices) > 0
-            ), f"D{sides}: No vertices in result"
+            assert len(mesh_with_numbers.vertices) > 0, f"D{sides}: No vertices in result"
             assert len(mesh_with_numbers.faces) > 0, f"D{sides}: No faces in result"
 
     def test_individual_character_engraving(self):
@@ -78,9 +68,7 @@ class TestFontBasedEngraving:
                         font_path=font_path,
                     )
 
-                    vertex_increase = len(result_mesh.vertices) - len(
-                        base_mesh.vertices
-                    )
+                    vertex_increase = len(result_mesh.vertices) - len(base_mesh.vertices)
                     volume_decrease = base_mesh.volume - result_mesh.volume
 
                     if vertex_increase > 0 and volume_decrease >= 0:
@@ -93,9 +81,9 @@ class TestFontBasedEngraving:
 
             # Allow for some failures but expect most to work
             success_rate = success_count / max_number
-            assert (
-                success_rate >= 0.8
-            ), f"D{sides}: Only {success_count}/{max_number} characters worked. Failed: {failed_chars}"
+            assert success_rate >= 0.8, (
+                f"D{sides}: Only {success_count}/{max_number} characters worked. Failed: {failed_chars}"
+            )
 
     def test_problematic_character_combinations(self):
         """Test specific character and face combinations that have been problematic."""
@@ -124,9 +112,7 @@ class TestFontBasedEngraving:
                 )
 
                 vertex_increase = len(result_mesh.vertices) - len(base_mesh.vertices)
-                assert (
-                    vertex_increase > 0
-                ), f"D{sides} char '{char}' on face {face_idx+1} failed"
+                assert vertex_increase > 0, f"D{sides} char '{char}' on face {face_idx + 1} failed"
 
     def test_different_characters_on_same_face(self):
         """Test different characters on the same face to isolate character vs face issues."""
@@ -162,9 +148,7 @@ class TestFontBasedEngraving:
 
         # Most characters should work
         success_rate = (len(test_chars) - len(failed_chars)) / len(test_chars)
-        assert (
-            success_rate >= 0.8
-        ), f"Too many characters failed on D8 face 7: {failed_chars}"
+        assert success_rate >= 0.8, f"Too many characters failed on D8 face 7: {failed_chars}"
 
     def test_accumulating_engraving_complexity(self):
         """Test that multiple engravings on the same mesh work correctly."""
@@ -199,15 +183,11 @@ class TestFontBasedEngraving:
                 pass  # Continue with next engraving
 
         # Should successfully engrave most numbers
-        assert (
-            successful_engravings >= 4
-        ), f"Only {successful_engravings}/6 accumulated engravings succeeded"
+        assert successful_engravings >= 4, f"Only {successful_engravings}/6 accumulated engravings succeeded"
 
         # Final mesh should be more complex than base
         final_vertex_increase = len(current_mesh.vertices) - len(base_mesh.vertices)
-        assert (
-            final_vertex_increase > 50
-        ), f"Insufficient final complexity increase: {final_vertex_increase}"
+        assert final_vertex_increase > 50, f"Insufficient final complexity increase: {final_vertex_increase}"
 
     def test_text_mesh_creation(self):
         """Test font-based text mesh creation for various characters."""
@@ -240,9 +220,7 @@ class TestFontBasedEngraving:
         mesh_no_numbers = dice.generate_mesh(include_numbers=False)
         mesh_with_numbers = dice.generate_mesh(include_numbers=True)
 
-        vertex_increase = len(mesh_with_numbers.vertices) - len(
-            mesh_no_numbers.vertices
-        )
+        vertex_increase = len(mesh_with_numbers.vertices) - len(mesh_no_numbers.vertices)
         assert vertex_increase > 0, "Fallback engraving failed"
 
     def test_engraving_parameters(self):
@@ -300,9 +278,7 @@ class TestFontBasedEngraving:
                 dice.export_stl(output_path, include_numbers=True)
 
                 assert output_path.exists(), f"STL file not created for D{sides}"
-                assert (
-                    output_path.stat().st_size > 1000
-                ), f"STL file too small for D{sides}"
+                assert output_path.stat().st_size > 1000, f"STL file too small for D{sides}"
 
     def _get_test_font(self) -> str:
         """Get a font path for testing."""
@@ -364,15 +340,11 @@ class TestEngravingRegressions:
             volume_change = mesh_no_numbers.volume - mesh_with_numbers.volume
 
             # Volume should decrease (material removed by engraving)
-            assert (
-                volume_change > 0
-            ), f"D{sides}: Volume didn't decrease ({volume_change})"
+            assert volume_change > 0, f"D{sides}: Volume didn't decrease ({volume_change})"
 
             # Volume change should be reasonable (not too large)
             volume_ratio = volume_change / mesh_no_numbers.volume
-            assert (
-                volume_ratio < 0.1
-            ), f"D{sides}: Volume change too large ({volume_ratio:.3%})"
+            assert volume_ratio < 0.1, f"D{sides}: Volume change too large ({volume_ratio:.3%})"
 
     def test_backwards_text_regression(self):
         """Test for backwards text issues that were reported."""
@@ -395,8 +367,8 @@ class TestEngravingRegressions:
 
             # Basic validation that engraving worked
             vertex_increase = len(result.vertices) - len(base_mesh.vertices)
-            assert vertex_increase > 0, f"D6 face {i+1} engraving failed"
-            assert result.is_watertight, f"D6 face {i+1} result not watertight"
+            assert vertex_increase > 0, f"D6 face {i + 1} engraving failed"
+            assert result.is_watertight, f"D6 face {i + 1} result not watertight"
 
     def _get_test_font(self) -> str:
         """Get a font path for testing."""
