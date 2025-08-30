@@ -43,8 +43,12 @@ class TestWorkflowIntegration:
                 blank_size = blank_path.stat().st_size
 
                 # File size expectations (based on actual output)
-                assert numbered_size > 100, f"D{sides} file too small: {numbered_size} bytes"
-                assert blank_size > 100, f"D{sides} blank file too small: {blank_size} bytes"
+                assert (
+                    numbered_size > 100
+                ), f"D{sides} file too small: {numbered_size} bytes"
+                assert (
+                    blank_size > 100
+                ), f"D{sides} blank file too small: {blank_size} bytes"
 
                 # Files should be valid STL files (not empty)
                 assert numbered_size > 0 and blank_size > 0
@@ -88,7 +92,9 @@ class TestWorkflowIntegration:
 
             # File should exist and be substantial
             assert output_path.exists()
-            assert output_path.stat().st_size > 5000  # Should be larger due to custom size
+            assert (
+                output_path.stat().st_size > 5000
+            )  # Should be larger due to custom size
 
     def test_font_workflow_integration(self):
         """Test complete workflow with font specification."""
@@ -278,7 +284,9 @@ class TestWorkflowIntegration:
                         text_depth=0.5 + thread_id * 0.1,
                     )
 
-                    output_path = Path(temp_dir) / f"concurrent_{thread_id}_d{sides}.stl"
+                    output_path = (
+                        Path(temp_dir) / f"concurrent_{thread_id}_d{sides}.stl"
+                    )
                     dice.export_stl(output_path, include_numbers=True)
 
                     results.append(
@@ -330,7 +338,9 @@ class TestWorkflowIntegration:
                 mesh2 = dice.generate_mesh(include_numbers=False)
 
                 # Basic validation that meshes are different
-                assert len(mesh1.vertices) != len(mesh2.vertices) or len(mesh1.faces) != len(mesh2.faces)
+                assert len(mesh1.vertices) != len(mesh2.vertices) or len(
+                    mesh1.faces
+                ) != len(mesh2.faces)
 
                 # Export only occasionally to avoid too many files
                 if i % 5 == 0:

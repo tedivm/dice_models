@@ -118,26 +118,37 @@ def main():
 
     # Demo 6: Curve resolution for quality
     run_command(
-        base_cmd + [
-            "generate", "6", str(cli_output / "cli_d6_low_quality.stl"),
-            "--curve-resolution", "low",
-            "--layout", "8,8,8,8,8,8"  # All 8s to show curve quality
+        base_cmd
+        + [
+            "generate",
+            "6",
+            str(cli_output / "cli_d6_low_quality.stl"),
+            "--curve-resolution",
+            "low",
+            "--layout",
+            "8,8,8,8,8,8",  # All 8s to show curve quality
         ],
         "Generate D6 with low curve resolution (faster)",
     )
-    
+
     run_command(
-        base_cmd + [
-            "generate", "6", str(cli_output / "cli_d6_highest_quality.stl"),
-            "--curve-resolution", "highest",
-            "--layout", "8,8,8,8,8,8"  # All 8s to show curve quality
+        base_cmd
+        + [
+            "generate",
+            "6",
+            str(cli_output / "cli_d6_highest_quality.stl"),
+            "--curve-resolution",
+            "highest",
+            "--layout",
+            "8,8,8,8,8,8",  # All 8s to show curve quality
         ],
         "Generate D6 with highest curve resolution (smoothest)",
     )
 
     # Demo 8: Blank dice
     run_command(
-        base_cmd + ["generate", "8", str(cli_output / "cli_d8_blank.stl"), "--no-numbers"],
+        base_cmd
+        + ["generate", "8", str(cli_output / "cli_d8_blank.stl"), "--no-numbers"],
         "Generate blank D8 (no numbers)",
     )
 
@@ -162,7 +173,8 @@ def main():
         json.dump(batch_config, f, indent=2)
 
     run_command(
-        base_cmd + ["batch-generate", str(config_file), "--output-dir", str(cli_output)],
+        base_cmd
+        + ["batch-generate", str(config_file), "--output-dir", str(cli_output)],
         "Batch generate multiple dice",
     )
 

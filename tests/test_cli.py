@@ -47,7 +47,15 @@ class TestCLI:
             # Test with specific font family
             result = self.runner.invoke(
                 app,
-                ["generate", "6", str(output_path), "--font", "Arial", "--curve-resolution", "low"],
+                [
+                    "generate",
+                    "6",
+                    str(output_path),
+                    "--font",
+                    "Arial",
+                    "--curve-resolution",
+                    "low",
+                ],
             )
             assert "Generated CUBE dice:" in result.stdout
 
@@ -58,7 +66,13 @@ class TestCLI:
 
             result = self.runner.invoke(
                 app,
-                ["generate", "13", str(output_path), "--curve-resolution", "low"],  # invalid sides
+                [
+                    "generate",
+                    "13",
+                    str(output_path),
+                    "--curve-resolution",
+                    "low",
+                ],  # invalid sides
             )
 
             assert result.exit_code == 1
@@ -69,7 +83,17 @@ class TestCLI:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "no_numbers_d8.stl"
 
-            result = self.runner.invoke(app, ["generate", "8", str(output_path), "--no-numbers", "--curve-resolution", "low"])
+            result = self.runner.invoke(
+                app,
+                [
+                    "generate",
+                    "8",
+                    str(output_path),
+                    "--no-numbers",
+                    "--curve-resolution",
+                    "low",
+                ],
+            )
 
             assert result.exit_code == 0
             assert output_path.exists()
@@ -80,7 +104,18 @@ class TestCLI:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "custom_d4.stl"
 
-            result = self.runner.invoke(app, ["generate", "4", str(output_path), "--layout", "4,3,2,1", "--curve-resolution", "low"])
+            result = self.runner.invoke(
+                app,
+                [
+                    "generate",
+                    "4",
+                    str(output_path),
+                    "--layout",
+                    "4,3,2,1",
+                    "--curve-resolution",
+                    "low",
+                ],
+            )
 
             assert result.exit_code == 0
             assert output_path.exists()
@@ -179,7 +214,18 @@ class TestCLIEdgeCases:
             for sides in valid_sides:
                 output_path = Path(temp_dir) / f"test_d{sides}.stl"
 
-                result = self.runner.invoke(app, ["generate", str(sides), str(output_path), "--radius", "5.0", "--curve-resolution", "low"])
+                result = self.runner.invoke(
+                    app,
+                    [
+                        "generate",
+                        str(sides),
+                        str(output_path),
+                        "--radius",
+                        "5.0",
+                        "--curve-resolution",
+                        "low",
+                    ],
+                )
 
                 assert result.exit_code == 0, f"Failed for D{sides}: {result.stdout}"
                 assert output_path.exists(), f"File not created for D{sides}"
@@ -215,7 +261,9 @@ class TestCLIEdgeCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             nested_path = Path(temp_dir) / "nested" / "dirs" / "test_d8.stl"
 
-            result = self.runner.invoke(app, ["generate", "8", str(nested_path), "--curve-resolution", "low"])
+            result = self.runner.invoke(
+                app, ["generate", "8", str(nested_path), "--curve-resolution", "low"]
+            )
 
             assert result.exit_code == 0
             assert nested_path.exists()
@@ -227,12 +275,25 @@ class TestCLIEdgeCases:
             output_path = Path(temp_dir) / "overwrite_test.stl"
 
             # Create first file
-            result1 = self.runner.invoke(app, ["generate", "4", str(output_path), "--curve-resolution", "low"])
+            result1 = self.runner.invoke(
+                app, ["generate", "4", str(output_path), "--curve-resolution", "low"]
+            )
             assert result1.exit_code == 0
             first_size = output_path.stat().st_size
 
             # Overwrite with different dice
-            result2 = self.runner.invoke(app, ["generate", "20", str(output_path), "--radius", "20.0", "--curve-resolution", "low"])
+            result2 = self.runner.invoke(
+                app,
+                [
+                    "generate",
+                    "20",
+                    str(output_path),
+                    "--radius",
+                    "20.0",
+                    "--curve-resolution",
+                    "low",
+                ],
+            )
             assert result2.exit_code == 0
             second_size = output_path.stat().st_size
 
@@ -298,7 +359,9 @@ class TestCLIEdgeCases:
                 )
                 assert result.exit_code == 0
                 assert output_path.exists()
-                assert "font" in result.stdout.lower() or output_path.stat().st_size > 1000
+                assert (
+                    "font" in result.stdout.lower() or output_path.stat().st_size > 1000
+                )
 
     def test_generate_parameter_validation(self):
         """Test parameter validation edge cases."""
@@ -308,7 +371,15 @@ class TestCLIEdgeCases:
             # Test with very small radius
             result = self.runner.invoke(
                 app,
-                ["generate", "6", str(output_path), "--radius", "0.1", "--curve-resolution", "low"],
+                [
+                    "generate",
+                    "6",
+                    str(output_path),
+                    "--radius",
+                    "0.1",
+                    "--curve-resolution",
+                    "low",
+                ],
             )
             assert result.exit_code == 0  # Should work but generate small dice
 
@@ -332,7 +403,15 @@ class TestCLIEdgeCases:
             # Test with zero text depth (effectively blank)
             result = self.runner.invoke(
                 app,
-                ["generate", "6", str(output_path), "--text-depth", "0.0", "--curve-resolution", "low"],
+                [
+                    "generate",
+                    "6",
+                    str(output_path),
+                    "--text-depth",
+                    "0.0",
+                    "--curve-resolution",
+                    "low",
+                ],
             )
             assert result.exit_code == 0
 
@@ -343,7 +422,9 @@ class TestCLIEdgeCases:
             invalid_config = Path(temp_dir) / "invalid.json"
             invalid_config.write_text("{ invalid json")
 
-            result = self.runner.invoke(app, ["batch-generate", str(invalid_config), "--output-dir", temp_dir])
+            result = self.runner.invoke(
+                app, ["batch-generate", str(invalid_config), "--output-dir", temp_dir]
+            )
             assert result.exit_code != 0
 
             # Test with valid JSON but invalid dice configuration
@@ -356,7 +437,9 @@ class TestCLIEdgeCases:
             with open(config_file, "w") as f:
                 json.dump(invalid_dice_config, f)
 
-            result = self.runner.invoke(app, ["batch-generate", str(config_file), "--output-dir", temp_dir])
+            result = self.runner.invoke(
+                app, ["batch-generate", str(config_file), "--output-dir", temp_dir]
+            )
             assert result.exit_code != 0
 
     def test_generate_layout_edge_cases(self):

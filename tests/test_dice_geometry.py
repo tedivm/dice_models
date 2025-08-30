@@ -21,7 +21,9 @@ class TestPolyhedronGeometry:
     def test_all_polyhedron_types(self):
         """Test that all polyhedron types can be generated."""
         for poly_type in PolyhedronType:
-            vertices, faces = PolyhedronGeometry.get_vertices_and_faces(poly_type, radius=1.0)
+            vertices, faces = PolyhedronGeometry.get_vertices_and_faces(
+                poly_type, radius=1.0
+            )
 
             assert vertices is not None
             assert faces is not None
@@ -39,7 +41,9 @@ class TestPolyhedronGeometry:
     def test_face_centers_calculation(self):
         """Test face center calculation."""
         # Test with a simple cube
-        vertices, faces = PolyhedronGeometry.get_vertices_and_faces(PolyhedronType.CUBE, radius=1.0)
+        vertices, faces = PolyhedronGeometry.get_vertices_and_faces(
+            PolyhedronType.CUBE, radius=1.0
+        )
         centers = PolyhedronGeometry.get_face_centers(vertices, faces)
 
         assert len(centers) == len(faces)
@@ -50,7 +54,9 @@ class TestPolyhedronGeometry:
 
     def test_face_normals_calculation(self):
         """Test face normal calculation."""
-        vertices, faces = PolyhedronGeometry.get_vertices_and_faces(PolyhedronType.CUBE, radius=1.0)
+        vertices, faces = PolyhedronGeometry.get_vertices_and_faces(
+            PolyhedronType.CUBE, radius=1.0
+        )
         normals = PolyhedronGeometry.get_face_normals(vertices, faces)
 
         assert len(normals) == len(faces)
@@ -90,7 +96,9 @@ class TestDiceGeometry:
     def test_mesh_generation(self):
         """Test mesh generation for different dice types."""
         for sides in [4, 6, 8, 10, 12, 20]:
-            dice = create_standard_dice(sides=sides, radius=10.0, curve_resolution="low")
+            dice = create_standard_dice(
+                sides=sides, radius=10.0, curve_resolution="low"
+            )
 
             # Test mesh without numbers
             mesh_no_numbers = dice.generate_mesh(include_numbers=False)
@@ -107,22 +115,32 @@ class TestDiceGeometry:
     def test_text_engraving_effectiveness(self):
         """Test that text engraving actually modifies the mesh effectively."""
         for sides in [4, 6, 8, 10, 12, 20]:
-            dice = create_standard_dice(sides=sides, radius=10.0, text_depth=1.0, text_size=3.0)
+            dice = create_standard_dice(
+                sides=sides, radius=10.0, text_depth=1.0, text_size=3.0
+            )
 
             # Generate both versions
             mesh_no_numbers = dice.generate_mesh(include_numbers=False)
             mesh_with_numbers = dice.generate_mesh(include_numbers=True)
 
             # Verify engraving worked using proven methodology
-            vertex_increase = len(mesh_with_numbers.vertices) - len(mesh_no_numbers.vertices)
+            vertex_increase = len(mesh_with_numbers.vertices) - len(
+                mesh_no_numbers.vertices
+            )
             volume_decrease = mesh_no_numbers.volume - mesh_with_numbers.volume
 
-            assert vertex_increase > 10, f"D{sides}: Insufficient vertex increase ({vertex_increase})"
-            assert volume_decrease > 0, f"D{sides}: No volume decrease from engraving ({volume_decrease})"
+            assert (
+                vertex_increase > 10
+            ), f"D{sides}: Insufficient vertex increase ({vertex_increase})"
+            assert (
+                volume_decrease > 0
+            ), f"D{sides}: No volume decrease from engraving ({volume_decrease})"
 
             # Ensure volume change is reasonable (not excessive)
             volume_ratio = volume_decrease / mesh_no_numbers.volume
-            assert volume_ratio < 0.1, f"D{sides}: Volume change too large ({volume_ratio:.3%})"
+            assert (
+                volume_ratio < 0.1
+            ), f"D{sides}: Volume change too large ({volume_ratio:.3%})"
 
     def test_mesh_integrity_after_engraving(self):
         """Test that engraved meshes maintain structural integrity."""
@@ -138,7 +156,9 @@ class TestDiceGeometry:
 
             # Check for degenerate faces
             face_areas = mesh.area_faces
-            assert all(area > 1e-10 for area in face_areas), f"D{sides} has degenerate faces"
+            assert all(
+                area > 1e-10 for area in face_areas
+            ), f"D{sides} has degenerate faces"
 
     def test_engraving_consistency_across_faces(self):
         """Test that engraving works consistently across all faces."""
@@ -170,12 +190,16 @@ class TestDiceGeometry:
 
         # Expect most faces to work (allow for some edge cases)
         success_rate = face_success_count / 6
-        assert success_rate >= 0.8, f"Only {face_success_count}/6 faces engraved successfully"
+        assert (
+            success_rate >= 0.8
+        ), f"Only {face_success_count}/6 faces engraved successfully"
 
     def test_custom_number_layout(self):
         """Test custom number layouts."""
         custom_layout = [6, 5, 4, 3, 2, 1]
-        dice = DiceGeometry(PolyhedronType.CUBE, number_layout=custom_layout, curve_resolution="low")
+        dice = DiceGeometry(
+            PolyhedronType.CUBE, number_layout=custom_layout, curve_resolution="low"
+        )
 
         assert dice.number_layout == custom_layout
 
@@ -185,7 +209,9 @@ class TestDiceGeometry:
 
     def test_dice_info(self):
         """Test dice information gathering."""
-        dice = DiceGeometry(PolyhedronType.ICOSAHEDRON, radius=15.0, curve_resolution="low")
+        dice = DiceGeometry(
+            PolyhedronType.ICOSAHEDRON, radius=15.0, curve_resolution="low"
+        )
         info = dice.get_info()
 
         assert info["type"] == "ICOSAHEDRON"
@@ -195,7 +221,9 @@ class TestDiceGeometry:
 
     def test_stl_export(self):
         """Test STL file export."""
-        dice = DiceGeometry(PolyhedronType.TETRAHEDRON, radius=8.0, curve_resolution="low")
+        dice = DiceGeometry(
+            PolyhedronType.TETRAHEDRON, radius=8.0, curve_resolution="low"
+        )
 
         with tempfile.TemporaryDirectory() as temp_dir:
             output_path = Path(temp_dir) / "test_d4.stl"
@@ -254,7 +282,9 @@ class TestTextRendering:
 
         # Test rendering different numbers
         for text in ["1", "5", "10", "20"]:
-            mesh = _create_font_text_mesh(text=text, size=3.0, depth=1.0, font_path=font_path)
+            mesh = _create_font_text_mesh(
+                text=text, size=3.0, depth=1.0, font_path=font_path
+            )
             assert mesh is not None
             assert len(mesh.vertices) > 0
             assert len(mesh.faces) > 0
@@ -288,7 +318,9 @@ class TestTextRendering:
         from dice_models.geometry.text import _create_font_text_mesh
 
         # Should handle gracefully or use fallback
-        mesh = _create_font_text_mesh(text="1", size=3.0, depth=1.0, font_path="/nonexistent/font.ttf")
+        mesh = _create_font_text_mesh(
+            text="1", size=3.0, depth=1.0, font_path="/nonexistent/font.ttf"
+        )
 
         # Should either create mesh with fallback or return None
         # The behavior depends on implementation, but shouldn't crash
@@ -364,4 +396,6 @@ class TestIntegration:
 
         # Test invalid custom layout
         with pytest.raises(ValueError):
-            DiceGeometry(PolyhedronType.CUBE, number_layout=[1, 2, 3], curve_resolution="low")  # Too few numbers
+            DiceGeometry(
+                PolyhedronType.CUBE, number_layout=[1, 2, 3], curve_resolution="low"
+            )  # Too few numbers

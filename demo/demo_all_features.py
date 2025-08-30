@@ -36,10 +36,10 @@ def demo_basic_dice_creation():
     for sides in dice_types:
         print(f"\nCreating D{sides}...")
         dice = create_standard_dice(
-            sides=sides, 
-            radius=10.0, 
-            curve_resolution="highest", 
-            output_path=output_dir / f"standard_d{sides}.stl"
+            sides=sides,
+            radius=10.0,
+            curve_resolution="highest",
+            output_path=output_dir / f"standard_d{sides}.stl",
         )
 
         info = dice.get_info()
@@ -157,7 +157,9 @@ def demo_blank_dice():
     print("\nCreating blank dice for custom engraving...")
 
     for sides in [4, 6, 8, 10, 12, 20]:
-        dice = create_standard_dice(sides=sides, radius=12.0, curve_resolution="highest")
+        dice = create_standard_dice(
+            sides=sides, radius=12.0, curve_resolution="highest"
+        )
         output_path = output_dir / f"blank_d{sides}.stl"
         dice.export_stl(output_path, include_numbers=False)
         print(f"  ✓ Blank D{sides} saved to {output_path.name}")
@@ -210,7 +212,9 @@ def demo_font_specification():
                 text_depth=0.8,  # Deeper for better visibility
                 text_size=4.0,  # Larger for better comparison
             )
-            output_file = output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
+            output_file = (
+                output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
+            )
             d6_font.export_stl(output_file)
             print(f"  ✓ D6 created: {output_file.name}")
 
@@ -371,11 +375,13 @@ def demo_curve_resolution():
     output_dir.mkdir(exist_ok=True)
 
     print("\nDemonstrating curve resolution settings for optimal font quality...")
-    print("Characters with curves (like 8, 0, 6, 9) will show dramatic quality differences.")
+    print(
+        "Characters with curves (like 8, 0, 6, 9) will show dramatic quality differences."
+    )
 
     # Character with curves for best demonstration
     test_character = "8"
-    
+
     # Different curve resolutions
     resolutions = [
         ("low", "Low quality (fast)"),
@@ -386,7 +392,7 @@ def demo_curve_resolution():
 
     for resolution, description in resolutions:
         print(f"\nCreating D6 with '{test_character}' using {resolution} resolution...")
-        
+
         dice = DiceGeometry(
             polyhedron_type=PolyhedronType.CUBE,
             radius=10.0,
@@ -395,15 +401,15 @@ def demo_curve_resolution():
             text_depth=1.0,
             curve_resolution=resolution,
         )
-        
+
         # Generate mesh to get vertex count
         mesh = dice.generate_mesh(include_numbers=True)
         vertex_count = len(mesh.vertices)
-        
+
         # Export with descriptive filename
         output_file = output_dir / f"curve_demo_{resolution}_{test_character}.stl"
         dice.export_stl(output_file, include_numbers=True)
-        
+
         print(f"  ✓ {description}")
         print(f"    Vertices: {vertex_count:,} (more = smoother curves)")
         print(f"    File: {output_file.name}")

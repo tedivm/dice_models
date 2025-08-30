@@ -65,17 +65,23 @@ def create_engraved_text(
         actual_text_size = min(text_size, face_size * 0.4)  # Max 40% of face size
         actual_depth = max(text_depth, mesh_size * 0.02)  # At least 2% of mesh size
 
-        logger.debug(f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}")
+        logger.debug(
+            f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}"
+        )
 
         # Create 3D text geometry from font with specified curve resolution
-        text_mesh = _create_font_text_mesh(text, actual_text_size, actual_depth, font_path, curve_resolution)
+        text_mesh = _create_font_text_mesh(
+            text, actual_text_size, actual_depth, font_path, curve_resolution
+        )
 
         if text_mesh is None:
             logger.warning(f"Failed to create text mesh for '{text}'")
             return base_mesh
 
         # Position and orient the text on the face
-        text_mesh = _position_text_on_face(text_mesh, face_center, face_normal, actual_depth)
+        text_mesh = _position_text_on_face(
+            text_mesh, face_center, face_normal, actual_depth
+        )
 
         # Perform boolean difference to engrave
         try:
@@ -95,7 +101,9 @@ def create_engraved_text(
             result = base_mesh.difference(text_mesh)
 
             if result.is_empty or len(result.vertices) == 0:
-                logger.warning(f"Boolean difference failed for text '{text}', returning original mesh")
+                logger.warning(
+                    f"Boolean difference failed for text '{text}', returning original mesh"
+                )
                 return base_mesh
 
             # Ensure result is properly oriented and cleaned
@@ -116,7 +124,9 @@ def create_engraved_text(
             except Exception as cleanup_error:
                 logger.debug(f"Mesh cleanup warning: {cleanup_error}")
 
-            logger.debug(f"Successfully engraved text '{text}': {len(result.vertices)} vertices")
+            logger.debug(
+                f"Successfully engraved text '{text}': {len(result.vertices)} vertices"
+            )
             return result
 
         except Exception as bool_error:
@@ -129,7 +139,11 @@ def create_engraved_text(
 
 
 def _create_font_text_mesh(
-    text: str, size: float, depth: float, font_path: Optional[str] = None, curve_resolution: int = 20
+    text: str,
+    size: float,
+    depth: float,
+    font_path: Optional[str] = None,
+    curve_resolution: int = 20,
 ) -> Optional[trimesh.Trimesh]:
     """
     Create a 3D mesh from text using actual font rendering with configurable curve quality.
@@ -145,7 +159,9 @@ def _create_font_text_mesh(
         3D mesh of the text or None if failed
     """
     if not FONT_TOOLS_AVAILABLE:
-        logger.warning("fontTools or triangle not available, falling back to simple geometry")
+        logger.warning(
+            "fontTools or triangle not available, falling back to simple geometry"
+        )
         return _create_fallback_text_mesh(text, size, depth)
 
     # Use provided font or try to find a system font
@@ -159,7 +175,9 @@ def _create_font_text_mesh(
             return _create_fallback_text_mesh(text, size, depth)
 
     try:
-        return _create_font_based_mesh(text, size, depth, actual_font_path, curve_resolution)
+        return _create_font_based_mesh(
+            text, size, depth, actual_font_path, curve_resolution
+        )
     except Exception as e:
         logger.warning(f"Font-based rendering failed: {e}")
         return _create_fallback_text_mesh(text, size, depth)
@@ -190,7 +208,9 @@ class PathRecorderPen(BasePen):
         super().__init__(glyphSet)
         self.paths = []
         self.current_path = []
-        self.curve_resolution = curve_resolution  # Number of points to use for curve approximation
+        self.curve_resolution = (
+            curve_resolution  # Number of points to use for curve approximation
+        )
 
     def moveTo(self, pt):
         if self.current_path:
@@ -207,25 +227,25 @@ class PathRecorderPen(BasePen):
             if points:
                 self.current_path.append(points[-1])
             return
-        
+
         # Current point is the start of the curve
         if not self.current_path:
             return
-            
+
         start_point = self.current_path[-1]
-        
+
         # For cubic Bézier: start, control1, control2, end
         if len(points) == 3:
             control1, control2, end_point = points
         else:
             # Handle cases with more control points by using the last 3
             control1, control2, end_point = points[-3:]
-        
+
         # Generate curve points using cubic Bézier formula
         curve_points = self._approximate_cubic_bezier(
             start_point, control1, control2, end_point, self.curve_resolution
         )
-        
+
         # Add the curve points (skip the first one as it's already in the path)
         self.current_path.extend(curve_points[1:])
 
@@ -233,12 +253,12 @@ class PathRecorderPen(BasePen):
         """Handle quadratic Bézier curves with proper approximation."""
         if not points:
             return
-            
+
         if not self.current_path:
             return
-            
+
         start_point = self.current_path[-1]
-        
+
         # For quadratic curves, we might have multiple control points
         # Process them in pairs (control_point, end_point)
         for i in range(0, len(points), 2):
@@ -249,77 +269,77 @@ class PathRecorderPen(BasePen):
                 # Odd number of points, treat the last one as both control and end
                 control_point = points[i]
                 end_point = points[i]
-            
+
             # Generate curve points using quadratic Bézier formula
             curve_points = self._approximate_quadratic_bezier(
                 start_point, control_point, end_point, self.curve_resolution
             )
-            
+
             # Add the curve points (skip the first one as it's already in the path)
             self.current_path.extend(curve_points[1:])
-            
+
             # Update start point for next curve segment
             start_point = end_point
 
     def _approximate_cubic_bezier(self, p0, p1, p2, p3, num_points):
         """
         Approximate a cubic Bézier curve with line segments.
-        
+
         Args:
             p0: Start point (x, y)
-            p1: First control point (x, y)  
+            p1: First control point (x, y)
             p2: Second control point (x, y)
             p3: End point (x, y)
             num_points: Number of points to generate
-            
+
         Returns:
             List of (x, y) points along the curve
         """
         points = []
         for i in range(num_points + 1):
             t = i / num_points
-            
+
             # Cubic Bézier formula: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
             x = (
-                (1 - t) ** 3 * p0[0] +
-                3 * (1 - t) ** 2 * t * p1[0] +
-                3 * (1 - t) * t ** 2 * p2[0] +
-                t ** 3 * p3[0]
+                (1 - t) ** 3 * p0[0]
+                + 3 * (1 - t) ** 2 * t * p1[0]
+                + 3 * (1 - t) * t**2 * p2[0]
+                + t**3 * p3[0]
             )
             y = (
-                (1 - t) ** 3 * p0[1] +
-                3 * (1 - t) ** 2 * t * p1[1] +
-                3 * (1 - t) * t ** 2 * p2[1] +
-                t ** 3 * p3[1]
+                (1 - t) ** 3 * p0[1]
+                + 3 * (1 - t) ** 2 * t * p1[1]
+                + 3 * (1 - t) * t**2 * p2[1]
+                + t**3 * p3[1]
             )
-            
+
             points.append((x, y))
-        
+
         return points
 
     def _approximate_quadratic_bezier(self, p0, p1, p2, num_points):
         """
         Approximate a quadratic Bézier curve with line segments.
-        
+
         Args:
             p0: Start point (x, y)
             p1: Control point (x, y)
             p2: End point (x, y)
             num_points: Number of points to generate
-            
+
         Returns:
             List of (x, y) points along the curve
         """
         points = []
         for i in range(num_points + 1):
             t = i / num_points
-            
+
             # Quadratic Bézier formula: B(t) = (1-t)²P₀ + 2(1-t)tP₁ + t²P₂
-            x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t ** 2 * p2[0]
-            y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t ** 2 * p2[1]
-            
+            x = (1 - t) ** 2 * p0[0] + 2 * (1 - t) * t * p1[0] + t**2 * p2[0]
+            y = (1 - t) ** 2 * p0[1] + 2 * (1 - t) * t * p1[1] + t**2 * p2[1]
+
             points.append((x, y))
-        
+
         return points
 
     def closePath(self):
@@ -340,7 +360,7 @@ def _create_font_based_mesh(
 ) -> trimesh.Trimesh:
     """
     Create 3D text mesh using actual font outlines with high-quality curve rendering.
-    
+
     Args:
         text: The text to render
         size: Size of the text
@@ -402,7 +422,9 @@ def _create_font_based_mesh(
         return _create_fallback_text_mesh(text, size, depth)
 
 
-def _paths_to_3d_mesh(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
+def _paths_to_3d_mesh(
+    paths: List[List[Tuple[float, float]]], depth: float
+) -> trimesh.Trimesh:
     """
     Convert 2D font paths to a 3D mesh using proper triangulation with hole support.
     """
@@ -568,7 +590,9 @@ def _calculate_bbox(
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def _path_contains_path(outer_path: List[Tuple[float, float]], inner_path: List[Tuple[float, float]]) -> bool:
+def _path_contains_path(
+    outer_path: List[Tuple[float, float]], inner_path: List[Tuple[float, float]]
+) -> bool:
     """Check if outer_path contains inner_path using bounding box and point-in-polygon tests."""
     if not outer_path or not inner_path:
         return False
@@ -618,7 +642,9 @@ def _calculate_path_centroid(
     return (cx * factor, cy * factor)
 
 
-def _point_in_polygon(point: Tuple[float, float], polygon: List[Tuple[float, float]]) -> bool:
+def _point_in_polygon(
+    point: Tuple[float, float], polygon: List[Tuple[float, float]]
+) -> bool:
     """Test if a point is inside a polygon using ray casting algorithm."""
     x, y = point
     n = len(polygon)
@@ -667,7 +693,9 @@ def _add_path_to_triangulation(
             all_segments.append([v1_idx, v2_idx])
 
 
-def _create_simple_text_box(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
+def _create_simple_text_box(
+    paths: List[List[Tuple[float, float]]], depth: float
+) -> trimesh.Trimesh:
     """Create a simple bounding box for text when triangulation fails."""
     # Find bounding box of all paths
     all_points = []
@@ -691,7 +719,9 @@ def _create_simple_text_box(paths: List[List[Tuple[float, float]]], depth: float
     return box
 
 
-def _extrude_2d_to_3d(vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float) -> trimesh.Trimesh:
+def _extrude_2d_to_3d(
+    vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float
+) -> trimesh.Trimesh:
     """Extrude 2D triangulated mesh to create 3D text volume."""
     if len(vertices_2d) == 0:
         return trimesh.creation.box(extents=[1.0, 1.0, depth])
@@ -868,7 +898,9 @@ def _position_text_on_face(
         if np.linalg.norm(rotation_axis) > 1e-6:
             rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
             rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
-            rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, rotation_axis)
+            rotation_matrix = trimesh.transformations.rotation_matrix(
+                rotation_angle, rotation_axis
+            )
             text_mesh.apply_transform(rotation_matrix)
 
     # Position text to intersect with the face for proper boolean difference

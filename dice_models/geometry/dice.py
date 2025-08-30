@@ -17,13 +17,13 @@ logger = logging.getLogger(__name__)
 def resolve_curve_resolution(resolution: Union[str, int]) -> int:
     """
     Convert curve resolution string to integer value.
-    
+
     Args:
         resolution: Either a string ("low", "medium", "high", "highest") or an integer
-        
+
     Returns:
         Integer resolution value
-        
+
     Raises:
         ValueError: If string is not a recognized resolution level
     """
@@ -31,18 +31,15 @@ def resolve_curve_resolution(resolution: Union[str, int]) -> int:
         if resolution < 3:
             raise ValueError("Curve resolution must be at least 3 points")
         return resolution
-    
-    resolution_map = {
-        "low": 5,
-        "medium": 10,
-        "high": 20,
-        "highest": 50
-    }
-    
+
+    resolution_map = {"low": 5, "medium": 10, "high": 20, "highest": 50}
+
     if resolution.lower() not in resolution_map:
         valid_options = ", ".join(resolution_map.keys())
-        raise ValueError(f"Invalid curve resolution '{resolution}'. Must be one of: {valid_options}")
-    
+        raise ValueError(
+            f"Invalid curve resolution '{resolution}'. Must be one of: {valid_options}"
+        )
+
     return resolution_map[resolution.lower()]
 
 
@@ -93,9 +90,15 @@ class DiceGeometry:
             self.number_layout = number_layout
 
         # Generate base geometry
-        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(polyhedron_type, radius)
-        self.face_centers = PolyhedronGeometry.get_face_centers(self.vertices, self.faces)
-        self.face_normals = PolyhedronGeometry.get_face_normals(self.vertices, self.faces)
+        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(
+            polyhedron_type, radius
+        )
+        self.face_centers = PolyhedronGeometry.get_face_centers(
+            self.vertices, self.faces
+        )
+        self.face_normals = PolyhedronGeometry.get_face_normals(
+            self.vertices, self.faces
+        )
 
     @property
     def sides(self) -> int:
@@ -194,7 +197,9 @@ class DiceGeometry:
                     font_path=self.font_path,
                     curve_resolution=self.curve_resolution,
                 )
-                logger.debug(f"Successfully engraved number {number} on face {i + 1}/{max_faces}")
+                logger.debug(
+                    f"Successfully engraved number {number} on face {i + 1}/{max_faces}"
+                )
             except Exception as e:
                 logger.exception(f"Failed to add number {number} to face {i}: {e}")
 
@@ -218,7 +223,9 @@ class DiceGeometry:
         dice_mesh.export(str(output_path))
         logger.info(f"Exported {self.polyhedron_type.name} dice to {output_path}")
 
-    def export_stl_numpy(self, output_path: str | Path, include_numbers: bool = True) -> None:
+    def export_stl_numpy(
+        self, output_path: str | Path, include_numbers: bool = True
+    ) -> None:
         """
         Export the dice model to an STL file using numpy-stl.
 
@@ -298,7 +305,9 @@ def create_standard_dice(
 
     if sides not in sides_to_type:
         valid_sides = list(sides_to_type.keys())
-        raise ValueError(f"Invalid number of sides: {sides}. Valid options: {valid_sides}")
+        raise ValueError(
+            f"Invalid number of sides: {sides}. Valid options: {valid_sides}"
+        )
 
     polyhedron_type = sides_to_type[sides]
     dice = DiceGeometry(polyhedron_type=polyhedron_type, radius=radius, **kwargs)

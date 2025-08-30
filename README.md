@@ -163,7 +163,7 @@ from dice_models import create_standard_dice
 
 # Different quality levels
 fast_dice = create_standard_dice(6, curve_resolution="low")
-standard_dice = create_standard_dice(6, curve_resolution="high")  
+standard_dice = create_standard_dice(6, curve_resolution="high")
 premium_dice = create_standard_dice(6, curve_resolution="highest")
 ```
 
