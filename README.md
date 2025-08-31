@@ -120,7 +120,7 @@ print(f"Vertices: {len(mesh.vertices)}, Faces: {len(mesh.faces)}")
 | D4 | Tetrahedron | 4-sided pyramid |
 | D6 | Cube | Standard 6-sided cube |
 | D8 | Octahedron | 8-sided double pyramid |
-| D10 | Pentagonal Trapezohedron | 10-sided with pentagonal faces |
+| D10 | Pentagonal Trapezohedron | 10-sided with quadrilateral faces |
 | D12 | Dodecahedron | 12-sided with pentagonal faces |
 | D20 | Icosahedron | 20-sided with triangular faces |
 
