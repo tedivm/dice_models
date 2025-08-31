@@ -39,6 +39,8 @@ def create_engraved_text(
     font_path: Optional[str] = None,
     curve_resolution: int = 20,
     sides: Optional[int] = None,
+    face_vertices: Optional[np.ndarray] = None,
+    face_index: Optional[int] = None,
 ) -> trimesh.Trimesh:
     """
     Create engraved text on a mesh face using actual font rendering with configurable curve quality.
@@ -94,7 +96,13 @@ def create_engraved_text(
 
         # Position and orient the text on the face
         text_mesh = _position_text_on_face(
-            text_mesh, face_center, face_normal, actual_depth
+            text_mesh,
+            face_center,
+            face_normal,
+            actual_depth,
+            sides,
+            face_vertices,
+            face_index,
         )
 
         # Perform boolean difference to engrave
@@ -888,11 +896,174 @@ def _create_fallback_text_mesh(text: str, size: float, depth: float) -> trimesh.
     return fallback
 
 
+def _calculate_d20_edge_alignment(
+    face_vertices: np.ndarray,
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+) -> Optional[np.ndarray]:
+    """
+    Calculate rotation matrix to align text with the closest edge on a D20 triangular face.
+
+    This function finds the edge that requires the least rotation from the default
+    text orientation and creates a rotation matrix to align with that edge.
+
+    Args:
+        face_vertices: 3 vertices of the triangular face (3x3 array)
+        face_center: Center point of the face
+        face_normal: Normal vector of the face (should be normalized)
+
+    Returns:
+        4x4 transformation matrix for edge alignment, or None if calculation fails
+    """
+    if face_vertices.shape != (3, 3):
+        logger.warning("D20 edge alignment requires exactly 3 vertices")
+        return None
+
+    try:
+        # Normalize the face normal
+        face_normal = face_normal / np.linalg.norm(face_normal)
+
+        # After text is aligned with face normal, the default text baseline direction
+        # is what we get when we rotate the original X-axis [1,0,0] by the same rotation
+        # that aligns Z-axis with face_normal
+
+        z_axis = np.array([0, 0, 1])
+        x_axis = np.array([1, 0, 0])
+
+        # Calculate the rotation that aligns z_axis with face_normal
+        if np.allclose(face_normal, z_axis):
+            # Face is already aligned with Z, no rotation needed
+            default_baseline = x_axis
+        else:
+            # Calculate rotation axis and angle
+            rotation_axis = np.cross(z_axis, face_normal)
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
+
+            # Apply this same rotation to the x_axis to get the default baseline direction
+            cos_a = np.cos(rotation_angle)
+            sin_a = np.sin(rotation_angle)
+            # Rodrigues' rotation formula
+            default_baseline = (
+                x_axis * cos_a
+                + np.cross(rotation_axis, x_axis) * sin_a
+                + rotation_axis * np.dot(rotation_axis, x_axis) * (1 - cos_a)
+            )
+
+        # Calculate the three edges of the triangle
+        edges = np.array(
+            [
+                face_vertices[1] - face_vertices[0],  # Edge 0-1
+                face_vertices[2] - face_vertices[1],  # Edge 1-2
+                face_vertices[0] - face_vertices[2],  # Edge 2-0
+            ]
+        )
+
+        # Normalize edges
+        edge_lengths = np.linalg.norm(edges, axis=1)
+        edges_normalized = edges / edge_lengths[:, np.newaxis]
+
+        # Find the edge that requires the least rotation from the default baseline
+        best_edge_idx = 0
+        min_rotation_angle = np.pi  # Start with maximum possible angle
+        best_edge_direction = None
+
+        for i, edge in enumerate(edges_normalized):
+            # Calculate angle between default baseline and this edge
+            # We want the minimum angle, considering both directions of the edge
+            angle1 = np.arccos(np.clip(np.dot(default_baseline, edge), -1, 1))
+            angle2 = np.arccos(np.clip(np.dot(default_baseline, -edge), -1, 1))
+
+            # For each direction, calculate what the "up" direction of text would be
+            # Text "up" is perpendicular to the baseline in the face plane
+            text_up1 = np.cross(face_normal, edge)
+            text_up1 = text_up1 / np.linalg.norm(text_up1)
+
+            text_up2 = np.cross(face_normal, -edge)
+            text_up2 = text_up2 / np.linalg.norm(text_up2)
+
+            # Critical fix: For dice, text should appear "upright" when viewed from outside
+            # This means the text "up" direction should generally point away from dice center
+            dice_center = np.array([0, 0, 0])  # Dice is centered at origin
+            from_center_to_face = face_center - dice_center
+            from_center_to_face = from_center_to_face / np.linalg.norm(
+                from_center_to_face
+            )
+
+            # Prefer text "up" direction that has positive component away from dice center
+            upright_preference1 = np.dot(text_up1, from_center_to_face)
+            upright_preference2 = np.dot(text_up2, from_center_to_face)
+
+            # Choose direction based on angle, but use upright preference as tiebreaker
+            if abs(angle1 - angle2) < np.radians(60):  # If angles are reasonably close
+                if upright_preference1 > upright_preference2:
+                    chosen_angle = angle1
+                    chosen_direction = edge
+                    logger.debug(
+                        f"Edge {i}: used upright preference (away1={upright_preference1:.3f} > away2={upright_preference2:.3f})"
+                    )
+                else:
+                    chosen_angle = angle2
+                    chosen_direction = -edge
+                    logger.debug(
+                        f"Edge {i}: used upright preference (away2={upright_preference2:.3f} > away1={upright_preference1:.3f})"
+                    )
+            else:
+                # Large angle difference, just use minimum
+                if angle1 < angle2:
+                    chosen_angle = angle1
+                    chosen_direction = edge
+                else:
+                    chosen_angle = angle2
+                    chosen_direction = -edge
+
+            logger.debug(
+                f"Edge {i}: angle1={np.degrees(angle1):.1f}°, angle2={np.degrees(angle2):.1f}°, chosen={np.degrees(chosen_angle):.1f}°"
+            )
+
+            if chosen_angle < min_rotation_angle:
+                min_rotation_angle = chosen_angle
+                best_edge_idx = i
+                best_edge_direction = chosen_direction
+
+        logger.debug(
+            f"Selected edge {best_edge_idx} with rotation {np.degrees(min_rotation_angle):.1f}°"
+        )
+
+        # Calculate rotation to align default baseline with the best edge
+        target_direction = best_edge_direction
+
+        # Calculate rotation angle in the face plane
+        cos_angle = np.dot(default_baseline, target_direction)
+        # Use the face normal to determine the rotation direction
+        cross_product = np.cross(default_baseline, target_direction)
+        sin_angle = np.dot(cross_product, face_normal)
+        rotation_angle = np.arctan2(sin_angle, cos_angle)
+
+        # Create rotation matrix around the face normal
+        rotation_matrix = trimesh.transformations.rotation_matrix(
+            rotation_angle, face_normal, point=face_center
+        )
+
+        logger.debug(
+            f"Final rotation: {np.degrees(rotation_angle):.1f}° around face normal"
+        )
+
+        return rotation_matrix
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate D20 edge alignment: {e}")
+        return None
+
+
 def _position_text_on_face(
     text_mesh: trimesh.Trimesh,
     face_center: np.ndarray,
     face_normal: np.ndarray,
     depth: float,
+    sides: Optional[int] = None,
+    face_vertices: Optional[np.ndarray] = None,
+    face_index: Optional[int] = None,
 ) -> trimesh.Trimesh:
     """
     Position and orient text mesh on the dice face.
@@ -917,6 +1088,27 @@ def _position_text_on_face(
             )
             text_mesh.apply_transform(rotation_matrix)
 
+    # Special alignment for D20 (icosahedron) - align text with the closest edge
+    if sides == 20 and face_vertices is not None and len(face_vertices) == 3:
+        edge_alignment_matrix = _calculate_d20_edge_alignment(
+            face_vertices, face_center, face_normal
+        )
+        if edge_alignment_matrix is not None:
+            text_mesh.apply_transform(edge_alignment_matrix)
+
+        # DIRECT FIX: Apply 180-degree rotation to specific problematic faces
+        # These are the faces that appear upside down: 3, 5, 6, 8, 9, 15, 16, 17, 18
+        # Convert numbers to face indices (0-based): 2, 4, 5, 7, 8, 14, 15, 16, 17
+        problematic_face_indices = {2, 4, 5, 7, 8, 14, 15, 16, 17}
+
+        if face_index is not None and face_index in problematic_face_indices:
+            logger.debug(f"Applying 180° fix to problematic face index {face_index}")
+            # Apply 180-degree rotation around the face normal
+            fix_rotation_matrix = trimesh.transformations.rotation_matrix(
+                np.pi, face_normal, point=face_center
+            )
+            text_mesh.apply_transform(fix_rotation_matrix)
+
     # Position text to intersect with the face for proper boolean difference
     # Use a more conservative approach: position text to partially penetrate the dice
     # The face_center is ON the surface, face_normal points OUTWARD
@@ -939,6 +1131,8 @@ def create_engraved_number(
     font_path: Optional[str] = None,
     curve_resolution: int = 20,
     sides: Optional[int] = None,
+    face_vertices: Optional[np.ndarray] = None,
+    face_index: Optional[int] = None,
 ) -> trimesh.Trimesh:
     """
     Legacy function - now calls the proper font-based text engraving with curve resolution support.
@@ -953,4 +1147,6 @@ def create_engraved_number(
         font_path=font_path,
         curve_resolution=curve_resolution,
         sides=sides,
+        face_vertices=face_vertices,
+        face_index=face_index,
     )

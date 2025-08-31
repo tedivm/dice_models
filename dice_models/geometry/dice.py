@@ -198,6 +198,13 @@ class DiceGeometry:
         for i in range(max_faces):
             number = self.number_layout[i]
             try:
+                # Get face vertices for D20 edge alignment
+                face_vertices = None
+                if self.polyhedron_type == PolyhedronType.ICOSAHEDRON and i < len(
+                    self.faces
+                ):
+                    face_vertices = self.vertices[self.faces[i]]
+
                 result_mesh = create_engraved_number(
                     base_mesh=result_mesh,
                     number=number,
@@ -208,6 +215,8 @@ class DiceGeometry:
                     font_path=self.font_path,
                     curve_resolution=self.curve_resolution,
                     sides=self.sides,
+                    face_vertices=face_vertices,
+                    face_index=i,
                 )
                 logger.debug(
                     f"Successfully engraved number {number} on face {i + 1}/{max_faces}"
