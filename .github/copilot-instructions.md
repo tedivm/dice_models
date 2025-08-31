@@ -91,7 +91,7 @@
 - Use the FastAPI Test Client (preferably with a fixture to generate it) rather than calling FastAPI router classes directly.
 - Use a test database fixture with SQLite backed by memory for tests that require a database. Including a dependency override for this test database as part of the FastAPI App Fixture is extremely useful.
 - When adding new code you should also add the appropriate tests to cover that new code.
-- When running more than one test pass the `-n` parameter to `pytest` to run tests in parallel.
+- When running more than one test pass the `-n auto` parameter to `pytest` to run tests in parallel.
 
 ## Files
 

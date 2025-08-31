@@ -35,9 +35,10 @@ def create_engraved_text(
     face_center: np.ndarray,
     face_normal: np.ndarray,
     text_depth: float = 0.05,
-    text_size: float = 0.3,
+    text_size: float = 6.0,
     font_path: Optional[str] = None,
     curve_resolution: int = 20,
+    sides: Optional[int] = None,
 ) -> trimesh.Trimesh:
     """
     Create engraved text on a mesh face using actual font rendering with configurable curve quality.
@@ -51,6 +52,7 @@ def create_engraved_text(
         text_size: Size of the text
         font_path: Path to TTF font file
         curve_resolution: Number of points to use for curve approximation (higher = smoother curves)
+        sides: Number of sides of the dice (used for face-specific scaling)
 
     Returns:
         Mesh with the text engraved
@@ -60,8 +62,20 @@ def create_engraved_text(
         mesh_bounds = base_mesh.bounds
         mesh_size = np.linalg.norm(mesh_bounds[1] - mesh_bounds[0])
 
-        # Scale text appropriately for the dice face
-        face_size = mesh_size / 3.0  # Approximate face size
+        # Calculate face size using a heuristic approach
+        # For most dice, mesh_size / 3.0 is a good approximation
+        base_face_size = mesh_size / 3.0
+
+        # Apply specific scaling for different dice types
+        if sides == 6:
+            # D6 has square faces which have more usable area for text
+            face_size = base_face_size * 2.2
+            logger.debug(
+                "D6 detected, applying 2.2x face size scaling for square faces"
+            )
+        else:
+            face_size = base_face_size
+
         actual_text_size = min(text_size, face_size * 0.4)  # Max 40% of face size
         actual_depth = max(text_depth, mesh_size * 0.02)  # At least 2% of mesh size
 
@@ -924,6 +938,7 @@ def create_engraved_number(
     text_size: float = 0.3,
     font_path: Optional[str] = None,
     curve_resolution: int = 20,
+    sides: Optional[int] = None,
 ) -> trimesh.Trimesh:
     """
     Legacy function - now calls the proper font-based text engraving with curve resolution support.
@@ -937,4 +952,5 @@ def create_engraved_number(
         text_size=text_size,
         font_path=font_path,
         curve_resolution=curve_resolution,
+        sides=sides,
     )

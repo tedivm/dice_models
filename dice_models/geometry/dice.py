@@ -53,7 +53,7 @@ class DiceGeometry:
         number_layout: Optional[List[int]] = None,
         font_path: Optional[str] = None,
         text_depth: float = 0.5,
-        text_size: float = 3.0,
+        text_size: float = 6.0,
         curve_resolution: Union[str, int] = "high",
     ):
         """
@@ -196,6 +196,7 @@ class DiceGeometry:
                     text_size=self.text_size,
                     font_path=self.font_path,
                     curve_resolution=self.curve_resolution,
+                    sides=self.sides,
                 )
                 logger.debug(
                     f"Successfully engraved number {number} on face {i + 1}/{max_faces}"
