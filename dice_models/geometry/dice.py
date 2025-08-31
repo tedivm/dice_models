@@ -93,12 +93,23 @@ class DiceGeometry:
         self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(
             polyhedron_type, radius
         )
-        self.face_centers = PolyhedronGeometry.get_face_centers(
-            self.vertices, self.faces
-        )
-        self.face_normals = PolyhedronGeometry.get_face_normals(
-            self.vertices, self.faces
-        )
+
+        # Calculate face centers and normals
+        if polyhedron_type == PolyhedronType.DODECAHEDRON:
+            # Special handling for dodecahedron - use logical pentagonal faces
+            self.face_centers, self.face_normals = (
+                PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
+                    self.vertices, self.faces, radius
+                )
+            )
+        else:
+            # Standard calculation for all other polyhedra
+            self.face_centers = PolyhedronGeometry.get_face_centers(
+                self.vertices, self.faces
+            )
+            self.face_normals = PolyhedronGeometry.get_face_normals(
+                self.vertices, self.faces
+            )
 
     @property
     def sides(self) -> int:

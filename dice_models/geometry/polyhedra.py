@@ -240,62 +240,57 @@ class PolyhedronGeometry:
 
     @staticmethod
     def _dodecahedron(radius: float) -> Tuple[np.ndarray, np.ndarray]:
-        """Generate dodecahedron vertices and faces."""
-        # Very simplified dodecahedron - using a truncated icosahedron approach
-        # This creates a sphere-like shape with 12 faces
+        """Generate dodecahedron vertices and faces with pentagonal faces triangulated."""
+        # Create a dodecahedron using the dual of an icosahedron
+        # This ensures we get exactly 12 pentagonal faces (triangulated) and 20 vertices
 
+        # Start with icosahedron face centers as dodecahedron vertices
+        import trimesh
+        from scipy.spatial import ConvexHull
+
+        icosahedron = trimesh.creation.icosahedron(radius=1.0)
+
+        # Create dodecahedron vertices from icosahedron face centers
         vertices = []
-        faces = []
-
-        # Create vertices around a sphere in a roughly dodecahedral pattern
-        # 3 rings of vertices plus top and bottom points
-
-        # Top vertex
-        vertices.append([0, 0, radius])
-
-        # Upper ring (5 vertices)
-        upper_radius = radius * 0.8
-        upper_height = radius * 0.4
-        for i in range(5):
-            angle = 2 * math.pi * i / 5
-            x = upper_radius * math.cos(angle)
-            y = upper_radius * math.sin(angle)
-            vertices.append([x, y, upper_height])
-
-        # Lower ring (5 vertices, rotated)
-        lower_radius = radius * 0.8
-        lower_height = -radius * 0.4
-        for i in range(5):
-            angle = 2 * math.pi * i / 5 + math.pi / 5  # Rotated by 36 degrees
-            x = lower_radius * math.cos(angle)
-            y = lower_radius * math.sin(angle)
-            vertices.append([x, y, lower_height])
-
-        # Bottom vertex
-        vertices.append([0, 0, -radius])
+        for face in icosahedron.faces:
+            # Calculate face center
+            center = np.mean(icosahedron.vertices[face], axis=0)
+            # Project to sphere surface and scale to desired radius
+            center = center / np.linalg.norm(center) * radius
+            vertices.append(center)
 
         vertices = np.array(vertices)
 
-        # Create faces - 12 triangular faces
-        # Top cap (5 faces)
-        for i in range(5):
-            next_i = (i + 1) % 5
-            faces.append([0, 1 + i, 1 + next_i])
+        # Use convex hull to create triangulated surface
+        # This automatically creates a watertight triangulated mesh
+        hull = ConvexHull(vertices)
+        faces = hull.simplices
 
-        # Middle band (5 faces)
-        for i in range(5):
-            next_i = (i + 1) % 5
-            # Connect upper ring to lower ring
-            faces.append([1 + i, 6 + i, 1 + next_i])
-            faces.append([1 + next_i, 6 + i, 6 + next_i])
+        # Fix face orientation - convex hull may have inward-facing normals
+        # Ensure faces are oriented outward by checking against centroid
+        centroid = np.mean(vertices, axis=0)
+        corrected_faces = []
 
-        # Bottom cap would be 2 more faces, but we'll use just one
-        # Simplified bottom (1 face connecting to center)
-        for i in range(5):
-            next_i = (i + 1) % 5
-            faces.append([6 + i, 11, 6 + next_i])
+        for face in faces:
+            # Calculate face normal
+            v0, v1, v2 = vertices[face]
+            normal = np.cross(v1 - v0, v2 - v0)
 
-        return vertices, np.array(faces)
+            # Calculate face center
+            face_center = np.mean([v0, v1, v2], axis=0)
+
+            # Vector from centroid to face center
+            to_face = face_center - centroid
+
+            # If normal points inward (dot product negative), flip the face
+            if np.dot(normal, to_face) < 0:
+                corrected_faces.append(
+                    [face[0], face[2], face[1]]
+                )  # Flip winding order
+            else:
+                corrected_faces.append(face)
+
+        return vertices, np.array(corrected_faces)
 
     @staticmethod
     def _icosahedron(radius: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -354,6 +349,77 @@ class PolyhedronGeometry:
         )
 
         return vertices, faces
+
+    @staticmethod
+    def get_dodecahedron_logical_face_centers_and_normals(
+        vertices: np.ndarray, faces: np.ndarray, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get face centers and normals for the 12 logical pentagonal faces of a dodecahedron.
+
+        The dodecahedron is triangulated into 36 triangular faces (12 pentagons × 3 triangles each),
+        but for text engraving we need the centers and normals of the 12 logical pentagonal faces.
+
+        Args:
+            vertices: Array of dodecahedron vertices (20 vertices)
+            faces: Array of triangulated faces (36 triangular faces)
+            radius: Radius of the dodecahedron
+
+        Returns:
+            Tuple of (face_centers, face_normals) for the 12 logical pentagonal faces
+        """
+        import trimesh
+
+        # Create the actual dodecahedron mesh to work with
+        dodecahedron_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+
+        # Get the icosahedron vertices which correspond to dodecahedron face centers
+        icosahedron = trimesh.creation.icosahedron(radius=1.0)
+
+        logical_face_centers = []
+        logical_face_normals = []
+
+        # Use icosahedron vertices as the directions for dodecahedron face centers
+        for vertex in icosahedron.vertices:
+            # Get the direction from origin to this vertex
+            direction = vertex / np.linalg.norm(vertex)
+
+            # Project this direction onto the dodecahedron surface
+            # We'll cast a ray from inside the mesh outward to find the surface
+            ray_origin = direction * (radius * 0.1)  # Start from inside
+            ray_direction = direction
+
+            # Find intersection with dodecahedron surface
+            locations, ray_indices, triangle_indices = (
+                dodecahedron_mesh.ray.intersects_location(
+                    ray_origins=[ray_origin], ray_directions=[ray_direction]
+                )
+            )
+
+            if len(locations) > 0:
+                # Use the first intersection (should be the surface)
+                face_center = locations[0]
+                face_normal = direction  # Normal points outward from center
+
+                logical_face_centers.append(face_center)
+                logical_face_normals.append(face_normal)
+
+        # If we didn't get exactly 12 faces, fall back to a simpler approach
+        if len(logical_face_centers) != 12:
+            logical_face_centers = []
+            logical_face_normals = []
+
+            # Use icosahedron vertices projected to the correct radius
+            for vertex in icosahedron.vertices:
+                # Project to surface of dodecahedron
+                direction = vertex / np.linalg.norm(vertex)
+                face_center = direction * radius
+                face_normal = direction
+
+                logical_face_centers.append(face_center)
+                logical_face_normals.append(face_normal)
+
+        return np.array(logical_face_centers), np.array(logical_face_normals)
 
 
 def get_standard_number_layout(polyhedron_type: PolyhedronType) -> List[int]:
