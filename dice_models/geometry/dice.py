@@ -198,12 +198,22 @@ class DiceGeometry:
         for i in range(max_faces):
             number = self.number_layout[i]
             try:
-                # Get face vertices for D20 edge alignment
+                # Get face vertices for D20 and D12 edge alignment
                 face_vertices = None
                 if self.polyhedron_type == PolyhedronType.ICOSAHEDRON and i < len(
                     self.faces
                 ):
+                    # D20: Use triangular face vertices directly
                     face_vertices = self.vertices[self.faces[i]]
+                elif self.polyhedron_type == PolyhedronType.DODECAHEDRON and i < 12:
+                    # D12: Use logical pentagonal face vertices
+                    logical_face_vertices = (
+                        PolyhedronGeometry.get_dodecahedron_logical_face_vertices(
+                            self.vertices, self.faces, self.radius
+                        )
+                    )
+                    if i < len(logical_face_vertices):
+                        face_vertices = logical_face_vertices[i]
 
                 result_mesh = create_engraved_number(
                     base_mesh=result_mesh,

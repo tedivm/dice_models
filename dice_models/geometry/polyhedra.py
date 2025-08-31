@@ -463,6 +463,83 @@ class PolyhedronGeometry:
 
         return np.array(logical_face_centers), np.array(logical_face_normals)
 
+    @staticmethod
+    def get_dodecahedron_logical_face_vertices(
+        vertices: np.ndarray, faces: np.ndarray, radius: float
+    ) -> List[np.ndarray]:
+        """
+        Get the vertices for the 12 logical pentagonal faces of a dodecahedron.
+
+        The dodecahedron is triangulated, but we need to reconstruct the original
+        pentagonal faces for edge alignment.
+
+        Args:
+            vertices: Array of dodecahedron vertices (20 vertices)
+            faces: Array of triangulated faces (36 triangular faces)
+            radius: Radius of the dodecahedron
+
+        Returns:
+            List of 12 arrays, each containing 5 vertices of a pentagonal face
+        """
+        import trimesh
+
+        # Create the actual dodecahedron mesh
+        dodecahedron_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+
+        # Get logical face centers first
+        logical_face_centers, _ = (
+            PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
+                vertices, faces, radius
+            )
+        )
+
+        logical_face_vertices = []
+
+        for face_center in logical_face_centers:
+            # Find vertices that are part of this logical face
+            # For a dodecahedron, each pentagonal face has 5 vertices
+            # We'll find the 5 vertices closest to this face center
+
+            # Calculate distances from all vertices to this face center
+            distances = np.linalg.norm(vertices - face_center, axis=1)
+
+            # Get the 5 closest vertices (these form the pentagon)
+            closest_indices = np.argsort(distances)[:5]
+            face_verts = vertices[closest_indices]
+
+            # Sort vertices in pentagonal order around the face center
+            # Project vertices to a 2D plane centered at face_center
+            face_normal = face_center / np.linalg.norm(
+                face_center
+            )  # Points outward from origin
+
+            # Create a coordinate system for the face plane
+            # Use the first vertex as reference for the X direction
+            to_first_vertex = face_verts[0] - face_center
+            to_first_vertex = (
+                to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
+            )
+            x_axis = to_first_vertex / np.linalg.norm(to_first_vertex)
+            y_axis = np.cross(face_normal, x_axis)
+
+            # Project all vertices to 2D coordinates in this plane
+            angles = []
+            for vertex in face_verts:
+                to_vertex = vertex - face_center
+                to_vertex = to_vertex - np.dot(to_vertex, face_normal) * face_normal
+                x_coord = np.dot(to_vertex, x_axis)
+                y_coord = np.dot(to_vertex, y_axis)
+                angle = np.arctan2(y_coord, x_coord)
+                angles.append(angle)
+
+            # Sort vertices by angle to get proper pentagonal order
+            sorted_indices = np.argsort(angles)
+            ordered_face_verts = face_verts[sorted_indices]
+
+            logical_face_vertices.append(ordered_face_verts)
+
+        return logical_face_vertices
+
 
 def get_standard_number_layout(polyhedron_type: PolyhedronType) -> List[int]:
     """
