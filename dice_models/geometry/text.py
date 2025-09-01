@@ -5,16 +5,10 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
+import triangle
 import trimesh
-
-try:
-    import triangle
-    from fontTools.pens.basePen import BasePen
-    from fontTools.ttLib import TTFont
-
-    FONT_TOOLS_AVAILABLE = True
-except ImportError:
-    FONT_TOOLS_AVAILABLE = False
+from fontTools.pens.basePen import BasePen
+from fontTools.ttLib import TTFont
 
 logger = logging.getLogger(__name__)
 
@@ -172,10 +166,6 @@ def _create_font_text_mesh(
     Returns:
         3D mesh of the text or None if failed
     """
-    if not FONT_TOOLS_AVAILABLE:
-        logger.warning("fontTools or triangle not available, falling back to simple geometry")
-        return _create_fallback_text_mesh(text, size, depth)
-
     # Use provided font or try to find a system font
     if font_path and Path(font_path).exists():
         actual_font_path = font_path
