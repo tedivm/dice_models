@@ -1056,6 +1056,166 @@ def _calculate_d20_edge_alignment(
         return None
 
 
+def _calculate_d8_edge_alignment(
+    face_vertices: np.ndarray,
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+) -> Optional[np.ndarray]:
+    """
+    Calculate rotation matrix to align text with a hemisphere-bridging edge on a D8 triangular face.
+
+    For a D8 (octahedron), we want to align text with edges that meaningfully bridge the two hemispheres.
+    The octahedron can be viewed as two square pyramids (top +Z, bottom -Z) joined at their equatorial base.
+
+    The best hemisphere-bridging edges are those that:
+    1. Lie in or close to the XY plane (minimal Z-component)
+    2. Run in a direction that maximally separates the top/bottom hemispheres
+    3. Provide the most readable text orientation
+
+    Args:
+        face_vertices: 3 vertices of the triangular face (3x3 array)
+        face_center: Center point of the face
+        face_normal: Normal vector of the face (should be normalized)
+
+    Returns:
+        4x4 transformation matrix for edge alignment, or None if calculation fails
+    """
+    if face_vertices.shape != (3, 3):
+        logger.warning("D8 edge alignment requires exactly 3 vertices")
+        return None
+
+    try:
+        # Normalize the face normal
+        face_normal = face_normal / np.linalg.norm(face_normal)
+
+        # Calculate the default text baseline direction after face alignment
+        z_axis = np.array([0, 0, 1])
+        x_axis = np.array([1, 0, 0])
+
+        if np.allclose(face_normal, z_axis):
+            default_baseline = x_axis
+        else:
+            rotation_axis = np.cross(z_axis, face_normal)
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
+
+            cos_a = np.cos(rotation_angle)
+            sin_a = np.sin(rotation_angle)
+            default_baseline = (
+                x_axis * cos_a
+                + np.cross(rotation_axis, x_axis) * sin_a
+                + rotation_axis * np.dot(rotation_axis, x_axis) * (1 - cos_a)
+            )
+
+        # Calculate the three edges of the triangle
+        edges = np.array(
+            [
+                face_vertices[1] - face_vertices[0],  # Edge 0-1
+                face_vertices[2] - face_vertices[1],  # Edge 1-2
+                face_vertices[0] - face_vertices[2],  # Edge 2-0
+            ]
+        )
+
+        # Normalize edges
+        edge_lengths = np.linalg.norm(edges, axis=1)
+        edges_normalized = edges / edge_lengths[:, np.newaxis]
+
+        # For D8, find the edge that best bridges hemispheres by:
+        # 1. Having minimal Z-component (horizontal)
+        # 2. Having maximal XY-plane component (separates top/bottom hemispheres)
+        # 3. Providing good text readability
+
+        best_edge_idx = 0
+        best_score = float("inf")
+        best_edge_direction = None
+
+        dice_center = np.array([0, 0, 0])
+        from_center_to_face = face_center - dice_center
+        from_center_to_face = from_center_to_face / np.linalg.norm(from_center_to_face)
+
+        for i, edge in enumerate(edges_normalized):
+            # Check both directions of the edge
+            for direction_multiplier, direction_name in [
+                (1, "forward"),
+                (-1, "reverse"),
+            ]:
+                edge_direction = edge * direction_multiplier
+
+                # Key insight: For hemisphere-bridging, we want edges that:
+                # 1. Are horizontal (low |Z|)
+                z_component = abs(edge_direction[2])
+
+                # 2. Have significant XY-plane projection (separate hemispheres)
+                xy_magnitude = np.sqrt(edge_direction[0] ** 2 + edge_direction[1] ** 2)
+
+                # 3. Create readable text "up" direction
+                text_up = np.cross(face_normal, edge_direction)
+                text_up = text_up / np.linalg.norm(text_up)
+                upright_preference = np.dot(text_up, from_center_to_face)
+
+                # 4. Align well with the face's hemisphere-bridging orientation
+                # For octahedron faces, prefer edges that align with the global XY directions
+                # rather than diagonal directions
+                xy_direction = np.array([edge_direction[0], edge_direction[1], 0])
+                if np.linalg.norm(xy_direction) > 0:
+                    xy_direction = xy_direction / np.linalg.norm(xy_direction)
+
+                    # Prefer alignment with cardinal directions (X or Y axes)
+                    x_alignment = abs(np.dot(xy_direction, [1, 0, 0]))
+                    y_alignment = abs(np.dot(xy_direction, [0, 1, 0]))
+                    cardinal_preference = max(x_alignment, y_alignment)
+                else:
+                    cardinal_preference = 0
+
+                # Combine factors into a score (lower is better)
+                # Prioritize: horizontal edges > XY magnitude > cardinal alignment > readability
+                hemisphere_bridging_score = (
+                    z_component * 10.0  # Strongly prefer horizontal edges
+                    + (1.0 - xy_magnitude) * 5.0  # Prefer strong XY-plane presence
+                    + (1.0 - cardinal_preference) * 2.0  # Prefer cardinal directions
+                    + (1.0 - max(0, upright_preference)) * 1.0  # Prefer upright text
+                )
+
+                logger.debug(
+                    f"D8 Edge {i} {direction_name}: z={z_component:.3f}, xy_mag={xy_magnitude:.3f}, "
+                    f"cardinal={cardinal_preference:.3f}, upright={upright_preference:.3f}, "
+                    f"score={hemisphere_bridging_score:.3f}"
+                )
+
+                if hemisphere_bridging_score < best_score:
+                    best_score = hemisphere_bridging_score
+                    best_edge_idx = i
+                    best_edge_direction = edge_direction
+
+        logger.debug(
+            f"D8 Selected hemisphere-bridging edge {best_edge_idx} with score {best_score:.3f}"
+        )
+
+        # Calculate rotation to align default baseline with the best hemisphere-bridging edge
+        target_direction = best_edge_direction
+
+        # Calculate rotation angle in the face plane
+        cos_angle = np.dot(default_baseline, target_direction)
+        cross_product = np.cross(default_baseline, target_direction)
+        sin_angle = np.dot(cross_product, face_normal)
+        rotation_angle = np.arctan2(sin_angle, cos_angle)
+
+        # Create rotation matrix around the face normal
+        rotation_matrix = trimesh.transformations.rotation_matrix(
+            rotation_angle, face_normal, point=face_center
+        )
+
+        logger.debug(
+            f"D8 Final rotation: {np.degrees(rotation_angle):.1f}° around face normal"
+        )
+
+        return rotation_matrix
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate D8 edge alignment: {e}")
+        return None
+
+
 def _calculate_d12_edge_alignment(
     face_vertices: np.ndarray,
     face_center: np.ndarray,
@@ -1270,6 +1430,14 @@ def _position_text_on_face(
                 np.pi, face_normal, point=face_center
             )
             text_mesh.apply_transform(fix_rotation_matrix)
+
+    # Special alignment for D8 (octahedron) - align text with hemisphere-bridging edge
+    if sides == 8 and face_vertices is not None and len(face_vertices) == 3:
+        edge_alignment_matrix = _calculate_d8_edge_alignment(
+            face_vertices, face_center, face_normal
+        )
+        if edge_alignment_matrix is not None:
+            text_mesh.apply_transform(edge_alignment_matrix)
 
     # Special alignment for D12 (dodecahedron) - align text with the closest edge
     if sides == 12 and face_vertices is not None and len(face_vertices) == 5:

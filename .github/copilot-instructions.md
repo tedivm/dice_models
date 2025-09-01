@@ -109,3 +109,8 @@
 - Developer environments should be initialized with fake data for easy developer use.
 - Developer settings should live in the `.env` file, which should be in the `.gitignore` file.
 - A `.env.example` environment file should exist as a template for new developers to create their `.env` file. This file can be read to learn what variables should be set.
+- When not using the docker environment, make sure to activate the virtual environment before running commands.
+
+## Final Instructions
+
+All of the best practices above should be followed in all code unless there is a very good reason not to do so, and any exceptions should be documented in the code itself.

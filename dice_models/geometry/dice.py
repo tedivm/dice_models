@@ -198,12 +198,17 @@ class DiceGeometry:
         for i in range(max_faces):
             number = self.number_layout[i]
             try:
-                # Get face vertices for D20 and D12 edge alignment
+                # Get face vertices for D20, D12, and D8 edge alignment
                 face_vertices = None
                 if self.polyhedron_type == PolyhedronType.ICOSAHEDRON and i < len(
                     self.faces
                 ):
                     # D20: Use triangular face vertices directly
+                    face_vertices = self.vertices[self.faces[i]]
+                elif self.polyhedron_type == PolyhedronType.OCTAHEDRON and i < len(
+                    self.faces
+                ):
+                    # D8: Use triangular face vertices directly
                     face_vertices = self.vertices[self.faces[i]]
                 elif self.polyhedron_type == PolyhedronType.DODECAHEDRON and i < 12:
                     # D12: Use logical pentagonal face vertices
