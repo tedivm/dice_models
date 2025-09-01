@@ -50,6 +50,11 @@ $(PACKAGE_CHECK): $(PYTHON_VENV)
 pre-commit:
 	pre-commit install
 
+.PHONY: debug_clean
+debug_clean:
+	rm -f *.stl
+	rm -f *.py
+
 #
 # Formatting
 #
@@ -105,6 +110,8 @@ dapperdata_check:
 .PHONY: tomlsort_check
 tomlsort_check:
 	$(PYTHON_ENV) toml-sort $$(find . -not -path "./.venv/*" -name "*.toml") --check
+
+
 #
 # Dependencies
 #
