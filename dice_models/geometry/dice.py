@@ -232,6 +232,7 @@ class DiceGeometry:
                     sides=self.sides,
                     face_vertices=face_vertices,
                     face_index=i,
+                    radius=self.radius,
                 )
                 logger.debug(
                     f"Successfully engraved number {number} on face {i + 1}/{max_faces}"

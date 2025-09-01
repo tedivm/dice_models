@@ -41,6 +41,7 @@ def create_engraved_text(
     sides: Optional[int] = None,
     face_vertices: Optional[np.ndarray] = None,
     face_index: Optional[int] = None,
+    radius: Optional[float] = None,
 ) -> trimesh.Trimesh:
     """
     Create engraved text on a mesh face using actual font rendering with configurable curve quality.
@@ -103,6 +104,7 @@ def create_engraved_text(
             sides,
             face_vertices,
             face_index,
+            radius,
         )
 
         # Perform boolean difference to engrave
@@ -1378,6 +1380,128 @@ def _calculate_d12_edge_alignment(
         return None
 
 
+def _calculate_d10_pole_alignment(
+    face_center: np.ndarray,
+    face_normal: np.ndarray,
+    radius: float,
+) -> Optional[np.ndarray]:
+    """
+    Calculate rotation matrix to align text so that the top of the text points toward the closest pole on a D10.
+
+    For a D10 (pentagonal trapezohedron), there are two poles:
+    - Top pole at [0, 0, polar_height] where polar_height = radius * 1.2
+    - Bottom pole at [0, 0, -polar_height]
+
+    The text should be oriented so that the "top" of the text (text up direction)
+    points toward whichever pole is closest to the face center.
+
+    Args:
+        face_center: Center point of the face
+        face_normal: Normal vector of the face (should be normalized)
+        radius: Radius of the dice (needed to calculate pole positions)
+
+    Returns:
+        4x4 transformation matrix for pole alignment, or None if calculation fails
+    """
+    try:
+        # Normalize the face normal
+        face_normal = face_normal / np.linalg.norm(face_normal)
+
+        # Calculate the pole positions for D10 (same as in polyhedra.py)
+        polar_height = radius * 1.2
+        top_pole = np.array([0, 0, polar_height])
+        bottom_pole = np.array([0, 0, -polar_height])
+
+        # Determine which pole is closest to this face
+        distance_to_top = np.linalg.norm(face_center - top_pole)
+        distance_to_bottom = np.linalg.norm(face_center - bottom_pole)
+
+        if distance_to_top < distance_to_bottom:
+            target_pole = top_pole
+            logger.debug(f"Face closer to top pole (distance: {distance_to_top:.2f})")
+        else:
+            target_pole = bottom_pole
+            logger.debug(
+                f"Face closer to bottom pole (distance: {distance_to_bottom:.2f})"
+            )
+
+        # Calculate the direction from face center to the closest pole
+        pole_direction = target_pole - face_center
+        pole_direction = pole_direction / np.linalg.norm(pole_direction)
+
+        # After text is aligned with face normal, we need to determine what the
+        # default text "up" direction would be in the face plane
+        z_axis = np.array([0, 0, 1])
+        y_axis = np.array([0, 1, 0])
+
+        # Calculate the rotation that aligns z_axis with face_normal
+        if np.allclose(face_normal, z_axis):
+            # Face is already aligned with Z, default text up is Y
+            default_text_up = y_axis
+        elif np.allclose(face_normal, -z_axis):
+            # Face is aligned with negative Z, default text up is negative Y
+            default_text_up = -y_axis
+        else:
+            # Calculate rotation axis and angle
+            rotation_axis = np.cross(z_axis, face_normal)
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
+
+            # Apply this same rotation to the y_axis to get the default text up direction
+            cos_a = np.cos(rotation_angle)
+            sin_a = np.sin(rotation_angle)
+            # Rodrigues' rotation formula
+            default_text_up = (
+                y_axis * cos_a
+                + np.cross(rotation_axis, y_axis) * sin_a
+                + rotation_axis * np.dot(rotation_axis, y_axis) * (1 - cos_a)
+            )
+
+        # Project pole direction onto the face plane
+        # The face plane is defined by the face normal
+        pole_direction_in_face_plane = (
+            pole_direction - np.dot(pole_direction, face_normal) * face_normal
+        )
+
+        # Normalize the projected direction (this will be our desired text up direction)
+        if np.linalg.norm(pole_direction_in_face_plane) < 1e-6:
+            # Pole direction is parallel to face normal, can't determine alignment
+            logger.debug(
+                "Pole direction is parallel to face normal, no alignment needed"
+            )
+            return None
+
+        desired_text_up = pole_direction_in_face_plane / np.linalg.norm(
+            pole_direction_in_face_plane
+        )
+
+        # Calculate the rotation angle needed to align default_text_up with desired_text_up
+        # Both vectors are in the face plane, so we rotate around the face normal
+        cos_angle = np.clip(np.dot(default_text_up, desired_text_up), -1, 1)
+        rotation_angle = np.arccos(cos_angle)
+
+        # Determine rotation direction using cross product
+        cross_product = np.cross(default_text_up, desired_text_up)
+        # Project cross product onto face normal to determine direction
+        if np.dot(cross_product, face_normal) < 0:
+            rotation_angle = -rotation_angle
+
+        logger.debug(
+            f"D10 pole alignment: rotating {np.degrees(rotation_angle):.1f}° around face normal"
+        )
+
+        # Create rotation matrix around face normal
+        rotation_matrix = trimesh.transformations.rotation_matrix(
+            rotation_angle, face_normal
+        )
+
+        return rotation_matrix
+
+    except Exception as e:
+        logger.warning(f"Failed to calculate D10 pole alignment: {e}")
+        return None
+
+
 def _position_text_on_face(
     text_mesh: trimesh.Trimesh,
     face_center: np.ndarray,
@@ -1386,6 +1510,7 @@ def _position_text_on_face(
     sides: Optional[int] = None,
     face_vertices: Optional[np.ndarray] = None,
     face_index: Optional[int] = None,
+    radius: Optional[float] = None,
 ) -> trimesh.Trimesh:
     """
     Position and orient text mesh on the dice face.
@@ -1462,6 +1587,17 @@ def _position_text_on_face(
             )
             text_mesh.apply_transform(fix_rotation_matrix)
 
+    # Special alignment for D10 (pentagonal trapezohedron) - align text toward closest pole
+    if sides == 10:
+        if radius is not None:
+            pole_alignment_matrix = _calculate_d10_pole_alignment(
+                face_center, face_normal, radius
+            )
+            if pole_alignment_matrix is not None:
+                text_mesh.apply_transform(pole_alignment_matrix)
+        else:
+            logger.warning("D10 pole alignment requires radius parameter")
+
     # Position text to intersect with the face for proper boolean difference
     # Use a more conservative approach: position text to partially penetrate the dice
     # The face_center is ON the surface, face_normal points OUTWARD
@@ -1486,6 +1622,7 @@ def create_engraved_number(
     sides: Optional[int] = None,
     face_vertices: Optional[np.ndarray] = None,
     face_index: Optional[int] = None,
+    radius: Optional[float] = None,
 ) -> trimesh.Trimesh:
     """
     Legacy function - now calls the proper font-based text engraving with curve resolution support.
@@ -1502,4 +1639,5 @@ def create_engraved_number(
         sides=sides,
         face_vertices=face_vertices,
         face_index=face_index,
+        radius=radius,
     )

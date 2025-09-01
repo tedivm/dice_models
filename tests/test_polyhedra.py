@@ -90,9 +90,15 @@ class TestPolyhedronUtilities:
                 max_distance = np.max(distances)
 
                 # For circumscribed sphere, vertices should be on or inside the sphere
+                # D10 (pentagonal trapezohedron) is designed to be taller with poles at 1.2 * radius
+                tolerance_multiplier = (
+                    1.25
+                    if poly_type == PolyhedronType.PENTAGONAL_TRAPEZOHEDRON
+                    else 1.1
+                )
                 assert (
-                    max_distance <= radius * 1.1
-                ), f"{poly_type.name} vertices exceed radius {radius}"
+                    max_distance <= radius * tolerance_multiplier
+                ), f"{poly_type.name} vertices exceed radius {radius} (max distance: {max_distance:.3f})"
 
                 # Different polyhedra use different radius interpretations
                 # TETRAHEDRON appears to use inscribed radius in this library
