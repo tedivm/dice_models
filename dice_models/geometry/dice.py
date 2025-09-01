@@ -8,7 +8,9 @@ import numpy as np
 import trimesh
 from stl import mesh
 
-from .polyhedra import PolyhedronGeometry, PolyhedronType, get_standard_number_layout
+from .compatibility import PolyhedronGeometry
+from .layouts import get_standard_number_layout
+from .polyhedra import PolyhedronType
 from .text import create_engraved_number
 
 logger = logging.getLogger(__name__)

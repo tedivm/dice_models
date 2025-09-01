@@ -9,6 +9,7 @@ This project is still under development and there are a few active bugs that nee
 - The d4 acts like other dice, with one number centered per face, which does not work.
 - The default number placement isn't "balanced" yet.
 
+
 ## ✨ Features
 
 ### Core Capabilities
@@ -266,33 +267,94 @@ python demo_cli.py
 ### Running Tests
 
 ```bash
-pytest tests/
+pytest tests/ -n auto
+```
+
+For parallel execution of the full test suite, use the `-n auto` flag to run tests across multiple cores.
+
+## 🔧 Extensibility
+
+The modular architecture makes it easy to add new dice types:
+
+### Adding New Dice Types
+
+Want to add a D30 or D100? The factory pattern and modular design make it straightforward:
+
+1. **Create a new dice class** extending `BasePolyhedron`
+2. **Implement the geometry generation** for your polyhedron
+3. **Add to the factory mappings** for automatic discovery
+4. **Update the CLI** to support the new type
+
+Example for a D30:
+
+```python
+from dice_models.geometry.base import BasePolyhedron
+
+class D30(BasePolyhedron):
+    @property
+    def sides(self) -> int:
+        return 30
+
+    def get_standard_number_layout(self) -> List[int]:
+        return list(range(1, 31))
+
+    def _generate_vertices_and_faces(self, radius: float):
+        # Your D30 geometry implementation
+        return vertices, faces
+```
+
+### Dice Variants
+
+Create variants (like crystal-style dice) by extending existing implementations:
+
+```python
+from dice_models.geometry.types import D10
+
+class D10Crystal(D10):
+    def _generate_vertices_and_faces(self, radius: float):
+        vertices, faces = super()._generate_vertices_and_faces(radius)
+        # Apply crystal-specific modifications
+        return modified_vertices, faces
 ```
 
 ### Project Structure
 
 ```text
 dice_models/
-├── geometry/          # Core geometric algorithms
+├── geometry/          # Modular geometric algorithms
+│   ├── base/         # Abstract base classes and utilities
+│   ├── types/        # Individual dice implementations (D4, D6, D8, D10, D12, D20)
 │   ├── dice.py       # Main dice generation class with curve resolution support
-│   ├── polyhedra.py  # Polyhedron definitions and utilities
-│   └── text.py       # Font-based text engraving with Bézier curve mathematics
+│   ├── factory.py    # Factory pattern for creating dice instances
+│   ├── text.py       # Font-based text engraving with Bézier curve mathematics
+│   └── compatibility.py  # Backward compatibility layer
 ├── cli.py            # Command-line interface
 └── settings.py       # Configuration management
 
 demo/                 # Comprehensive examples and demonstrations
-tests/                # Full test suite (79+ tests)
+tests/                # Full test suite (88 tests)
 docs/                 # Documentation and development guides
 ```
 
+### Modular Architecture
+
+The geometry system uses a modular, extensible architecture:
+
+- **Individual Dice Classes**: Each dice type (D4, D6, D8, D10, D12, D20) has its own focused implementation
+- **Factory Pattern**: Easy creation and discovery of dice types
+- **Base Classes**: Common functionality shared through inheritance
+- **Extensibility**: Adding new dice types (D30, D100, variants) requires minimal changes
+- **Backward Compatibility**: All existing code continues to work unchanged
+
 ## 📊 Quality Assurance
 
-- **Comprehensive Testing**: 79+ tests covering all functionality including curve rendering
+- **Comprehensive Testing**: 80+ tests covering all functionality including curve rendering
 - **Geometric Validation**: Mesh integrity and mathematical accuracy
 - **Cross-Platform**: Tested on macOS, Linux, and Windows
 - **Font Compatibility**: Robust handling of various TTF fonts with proper curve support
 - **Performance Optimized**: Configurable quality levels for development vs. production
 - **3D Print Ready**: Generated meshes validated for manufacturability
+- **Modular Design**: Clean architecture enabling easy extension and maintenance
 
 ## 🤝 Use Cases
 
