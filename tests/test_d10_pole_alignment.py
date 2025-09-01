@@ -25,18 +25,14 @@ class TestD10PoleAlignment:
         face_center_top = np.array([5.0, 0.0, 8.0])  # Closer to top pole
         face_normal = np.array([0.5, 0.0, 0.866])  # Some arbitrary face normal
 
-        alignment_matrix = _calculate_d10_pole_alignment(
-            face_center_top, face_normal, radius
-        )
+        alignment_matrix = _calculate_d10_pole_alignment(face_center_top, face_normal, radius)
 
         assert alignment_matrix is not None
         assert alignment_matrix.shape == (4, 4)
 
         # Test face closer to bottom pole
         face_center_bottom = np.array([5.0, 0.0, -8.0])  # Closer to bottom pole
-        alignment_matrix = _calculate_d10_pole_alignment(
-            face_center_bottom, face_normal, radius
-        )
+        alignment_matrix = _calculate_d10_pole_alignment(face_center_bottom, face_normal, radius)
 
         assert alignment_matrix is not None
         assert alignment_matrix.shape == (4, 4)
@@ -49,9 +45,7 @@ class TestD10PoleAlignment:
         face_center = np.array([0.0, 0.0, 6.0])
         face_normal = np.array([0.0, 0.0, 1.0])  # Points directly toward top pole
 
-        alignment_matrix = _calculate_d10_pole_alignment(
-            face_center, face_normal, radius
-        )
+        alignment_matrix = _calculate_d10_pole_alignment(face_center, face_normal, radius)
 
         # Should return None when pole direction is parallel to face normal
         assert alignment_matrix is None
@@ -97,16 +91,14 @@ class TestD10PoleAlignment:
         radius = 10.0
 
         # According to the D10 geometry, poles should be at radius * 1.2
-        expected_polar_height = radius * 1.2
+        radius * 1.2
 
         # Test the pole position calculation in our alignment function
         face_center = np.array([8.0, 0.0, 2.0])  # Some face position
         face_normal = np.array([0.8, 0.0, 0.6])  # Normalized face normal
 
         # The function should handle the pole calculations correctly
-        alignment_matrix = _calculate_d10_pole_alignment(
-            face_center, face_normal, radius
-        )
+        alignment_matrix = _calculate_d10_pole_alignment(face_center, face_normal, radius)
 
         assert alignment_matrix is not None
 
@@ -140,9 +132,7 @@ class TestD10PoleAlignment:
         face_normal = np.array([0.6, 0.6, 0.53])  # Normalized
         face_normal = face_normal / np.linalg.norm(face_normal)
 
-        alignment_matrix = _calculate_d10_pole_alignment(
-            face_center, face_normal, radius
-        )
+        alignment_matrix = _calculate_d10_pole_alignment(face_center, face_normal, radius)
 
         if alignment_matrix is not None:
             # Should be a 4x4 transformation matrix

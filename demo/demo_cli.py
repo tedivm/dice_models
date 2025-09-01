@@ -147,8 +147,7 @@ def main():
 
     # Demo 8: Blank dice
     run_command(
-        base_cmd
-        + ["generate", "8", str(cli_output / "cli_d8_blank.stl"), "--no-numbers"],
+        base_cmd + ["generate", "8", str(cli_output / "cli_d8_blank.stl"), "--no-numbers"],
         "Generate blank D8 (no numbers)",
     )
 
@@ -173,8 +172,7 @@ def main():
         json.dump(batch_config, f, indent=2)
 
     run_command(
-        base_cmd
-        + ["batch-generate", str(config_file), "--output-dir", str(cli_output)],
+        base_cmd + ["batch-generate", str(config_file), "--output-dir", str(cli_output)],
         "Batch generate multiple dice",
     )
 

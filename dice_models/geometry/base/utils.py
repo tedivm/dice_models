@@ -95,18 +95,14 @@ class PolyhedronUtils:
 
             # If normal points inward (dot product negative), flip the face
             if np.dot(normal, to_face) < 0:
-                corrected_faces.append(
-                    [face[0], face[2], face[1]]
-                )  # Flip winding order
+                corrected_faces.append([face[0], face[2], face[1]])  # Flip winding order
             else:
                 corrected_faces.append(face)
 
         return np.array(corrected_faces)
 
     @staticmethod
-    def validate_mesh_integrity(
-        vertices: np.ndarray, faces: np.ndarray, radius: float
-    ) -> bool:
+    def validate_mesh_integrity(vertices: np.ndarray, faces: np.ndarray, radius: float) -> bool:
         """
         Validate that a mesh has the expected properties.
 

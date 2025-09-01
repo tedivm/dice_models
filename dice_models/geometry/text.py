@@ -73,23 +73,17 @@ def create_engraved_text(
         if sides == 6:
             # D6 has square faces which have more usable area for text
             face_size = base_face_size * 2.2
-            logger.debug(
-                "D6 detected, applying 2.2x face size scaling for square faces"
-            )
+            logger.debug("D6 detected, applying 2.2x face size scaling for square faces")
         else:
             face_size = base_face_size
 
         actual_text_size = min(text_size, face_size * 0.4)  # Max 40% of face size
         actual_depth = max(text_depth, mesh_size * 0.02)  # At least 2% of mesh size
 
-        logger.debug(
-            f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}"
-        )
+        logger.debug(f"Engraving text '{text}': size={actual_text_size:.2f}, depth={actual_depth:.2f}")
 
         # Create 3D text geometry from font with specified curve resolution
-        text_mesh = _create_font_text_mesh(
-            text, actual_text_size, actual_depth, font_path, curve_resolution
-        )
+        text_mesh = _create_font_text_mesh(text, actual_text_size, actual_depth, font_path, curve_resolution)
 
         if text_mesh is None:
             logger.warning(f"Failed to create text mesh for '{text}'")
@@ -125,9 +119,7 @@ def create_engraved_text(
             result = base_mesh.difference(text_mesh)
 
             if result.is_empty or len(result.vertices) == 0:
-                logger.warning(
-                    f"Boolean difference failed for text '{text}', returning original mesh"
-                )
+                logger.warning(f"Boolean difference failed for text '{text}', returning original mesh")
                 return base_mesh
 
             # Ensure result is properly oriented and cleaned
@@ -148,9 +140,7 @@ def create_engraved_text(
             except Exception as cleanup_error:
                 logger.debug(f"Mesh cleanup warning: {cleanup_error}")
 
-            logger.debug(
-                f"Successfully engraved text '{text}': {len(result.vertices)} vertices"
-            )
+            logger.debug(f"Successfully engraved text '{text}': {len(result.vertices)} vertices")
             return result
 
         except Exception as bool_error:
@@ -183,9 +173,7 @@ def _create_font_text_mesh(
         3D mesh of the text or None if failed
     """
     if not FONT_TOOLS_AVAILABLE:
-        logger.warning(
-            "fontTools or triangle not available, falling back to simple geometry"
-        )
+        logger.warning("fontTools or triangle not available, falling back to simple geometry")
         return _create_fallback_text_mesh(text, size, depth)
 
     # Use provided font or try to find a system font
@@ -199,9 +187,7 @@ def _create_font_text_mesh(
             return _create_fallback_text_mesh(text, size, depth)
 
     try:
-        return _create_font_based_mesh(
-            text, size, depth, actual_font_path, curve_resolution
-        )
+        return _create_font_based_mesh(text, size, depth, actual_font_path, curve_resolution)
     except Exception as e:
         logger.warning(f"Font-based rendering failed: {e}")
         return _create_fallback_text_mesh(text, size, depth)
@@ -232,9 +218,7 @@ class PathRecorderPen(BasePen):
         super().__init__(glyphSet)
         self.paths = []
         self.current_path = []
-        self.curve_resolution = (
-            curve_resolution  # Number of points to use for curve approximation
-        )
+        self.curve_resolution = curve_resolution  # Number of points to use for curve approximation
 
     def moveTo(self, pt):
         if self.current_path:
@@ -266,9 +250,7 @@ class PathRecorderPen(BasePen):
             control1, control2, end_point = points[-3:]
 
         # Generate curve points using cubic Bézier formula
-        curve_points = self._approximate_cubic_bezier(
-            start_point, control1, control2, end_point, self.curve_resolution
-        )
+        curve_points = self._approximate_cubic_bezier(start_point, control1, control2, end_point, self.curve_resolution)
 
         # Add the curve points (skip the first one as it's already in the path)
         self.current_path.extend(curve_points[1:])
@@ -324,18 +306,8 @@ class PathRecorderPen(BasePen):
             t = i / num_points
 
             # Cubic Bézier formula: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
-            x = (
-                (1 - t) ** 3 * p0[0]
-                + 3 * (1 - t) ** 2 * t * p1[0]
-                + 3 * (1 - t) * t**2 * p2[0]
-                + t**3 * p3[0]
-            )
-            y = (
-                (1 - t) ** 3 * p0[1]
-                + 3 * (1 - t) ** 2 * t * p1[1]
-                + 3 * (1 - t) * t**2 * p2[1]
-                + t**3 * p3[1]
-            )
+            x = (1 - t) ** 3 * p0[0] + 3 * (1 - t) ** 2 * t * p1[0] + 3 * (1 - t) * t**2 * p2[0] + t**3 * p3[0]
+            y = (1 - t) ** 3 * p0[1] + 3 * (1 - t) ** 2 * t * p1[1] + 3 * (1 - t) * t**2 * p2[1] + t**3 * p3[1]
 
             points.append((x, y))
 
@@ -446,9 +418,7 @@ def _create_font_based_mesh(
         return _create_fallback_text_mesh(text, size, depth)
 
 
-def _paths_to_3d_mesh(
-    paths: List[List[Tuple[float, float]]], depth: float
-) -> trimesh.Trimesh:
+def _paths_to_3d_mesh(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
     """
     Convert 2D font paths to a 3D mesh using proper triangulation with hole support.
     """
@@ -614,9 +584,7 @@ def _calculate_bbox(
     return min(xs), min(ys), max(xs), max(ys)
 
 
-def _path_contains_path(
-    outer_path: List[Tuple[float, float]], inner_path: List[Tuple[float, float]]
-) -> bool:
+def _path_contains_path(outer_path: List[Tuple[float, float]], inner_path: List[Tuple[float, float]]) -> bool:
     """Check if outer_path contains inner_path using bounding box and point-in-polygon tests."""
     if not outer_path or not inner_path:
         return False
@@ -666,9 +634,7 @@ def _calculate_path_centroid(
     return (cx * factor, cy * factor)
 
 
-def _point_in_polygon(
-    point: Tuple[float, float], polygon: List[Tuple[float, float]]
-) -> bool:
+def _point_in_polygon(point: Tuple[float, float], polygon: List[Tuple[float, float]]) -> bool:
     """Test if a point is inside a polygon using ray casting algorithm."""
     x, y = point
     n = len(polygon)
@@ -717,9 +683,7 @@ def _add_path_to_triangulation(
             all_segments.append([v1_idx, v2_idx])
 
 
-def _create_simple_text_box(
-    paths: List[List[Tuple[float, float]]], depth: float
-) -> trimesh.Trimesh:
+def _create_simple_text_box(paths: List[List[Tuple[float, float]]], depth: float) -> trimesh.Trimesh:
     """Create a simple bounding box for text when triangulation fails."""
     # Find bounding box of all paths
     all_points = []
@@ -743,9 +707,7 @@ def _create_simple_text_box(
     return box
 
 
-def _extrude_2d_to_3d(
-    vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float
-) -> trimesh.Trimesh:
+def _extrude_2d_to_3d(vertices_2d: np.ndarray, faces_2d: np.ndarray, depth: float) -> trimesh.Trimesh:
     """Extrude 2D triangulated mesh to create 3D text volume."""
     if len(vertices_2d) == 0:
         return trimesh.creation.box(extents=[1.0, 1.0, depth])
@@ -988,9 +950,7 @@ def _calculate_d20_edge_alignment(
             # This means the text "up" direction should generally point away from dice center
             dice_center = np.array([0, 0, 0])  # Dice is centered at origin
             from_center_to_face = face_center - dice_center
-            from_center_to_face = from_center_to_face / np.linalg.norm(
-                from_center_to_face
-            )
+            from_center_to_face = from_center_to_face / np.linalg.norm(from_center_to_face)
 
             # Prefer text "up" direction that has positive component away from dice center
             upright_preference1 = np.dot(text_up1, from_center_to_face)
@@ -1028,9 +988,7 @@ def _calculate_d20_edge_alignment(
                 best_edge_idx = i
                 best_edge_direction = chosen_direction
 
-        logger.debug(
-            f"Selected edge {best_edge_idx} with rotation {np.degrees(min_rotation_angle):.1f}°"
-        )
+        logger.debug(f"Selected edge {best_edge_idx} with rotation {np.degrees(min_rotation_angle):.1f}°")
 
         # Calculate rotation to align default baseline with the best edge
         target_direction = best_edge_direction
@@ -1043,13 +1001,9 @@ def _calculate_d20_edge_alignment(
         rotation_angle = np.arctan2(sin_angle, cos_angle)
 
         # Create rotation matrix around the face normal
-        rotation_matrix = trimesh.transformations.rotation_matrix(
-            rotation_angle, face_normal, point=face_center
-        )
+        rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, face_normal, point=face_center)
 
-        logger.debug(
-            f"Final rotation: {np.degrees(rotation_angle):.1f}° around face normal"
-        )
+        logger.debug(f"Final rotation: {np.degrees(rotation_angle):.1f}° around face normal")
 
         return rotation_matrix
 
@@ -1189,9 +1143,7 @@ def _calculate_d8_edge_alignment(
                     best_edge_idx = i
                     best_edge_direction = edge_direction
 
-        logger.debug(
-            f"D8 Selected hemisphere-bridging edge {best_edge_idx} with score {best_score:.3f}"
-        )
+        logger.debug(f"D8 Selected hemisphere-bridging edge {best_edge_idx} with score {best_score:.3f}")
 
         # Calculate rotation to align default baseline with the best hemisphere-bridging edge
         target_direction = best_edge_direction
@@ -1203,13 +1155,9 @@ def _calculate_d8_edge_alignment(
         rotation_angle = np.arctan2(sin_angle, cos_angle)
 
         # Create rotation matrix around the face normal
-        rotation_matrix = trimesh.transformations.rotation_matrix(
-            rotation_angle, face_normal, point=face_center
-        )
+        rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, face_normal, point=face_center)
 
-        logger.debug(
-            f"D8 Final rotation: {np.degrees(rotation_angle):.1f}° around face normal"
-        )
+        logger.debug(f"D8 Final rotation: {np.degrees(rotation_angle):.1f}° around face normal")
 
         return rotation_matrix
 
@@ -1310,9 +1258,7 @@ def _calculate_d12_edge_alignment(
             # This means the text "up" direction should generally point away from dice center
             dice_center = np.array([0, 0, 0])  # Dice is centered at origin
             from_center_to_face = face_center - dice_center
-            from_center_to_face = from_center_to_face / np.linalg.norm(
-                from_center_to_face
-            )
+            from_center_to_face = from_center_to_face / np.linalg.norm(from_center_to_face)
 
             # Prefer text "up" direction that has positive component away from dice center
             upright_preference1 = np.dot(text_up1, from_center_to_face)
@@ -1350,9 +1296,7 @@ def _calculate_d12_edge_alignment(
                 best_edge_idx = i
                 best_edge_direction = chosen_direction
 
-        logger.debug(
-            f"D12 Selected edge {best_edge_idx} with rotation {np.degrees(min_rotation_angle):.1f}°"
-        )
+        logger.debug(f"D12 Selected edge {best_edge_idx} with rotation {np.degrees(min_rotation_angle):.1f}°")
 
         # Calculate rotation to align default baseline with the best edge
         target_direction = best_edge_direction
@@ -1365,13 +1309,9 @@ def _calculate_d12_edge_alignment(
         rotation_angle = np.arctan2(sin_angle, cos_angle)
 
         # Create rotation matrix around the face normal
-        rotation_matrix = trimesh.transformations.rotation_matrix(
-            rotation_angle, face_normal, point=face_center
-        )
+        rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, face_normal, point=face_center)
 
-        logger.debug(
-            f"D12 Final rotation: {np.degrees(rotation_angle):.1f}° around face normal"
-        )
+        logger.debug(f"D12 Final rotation: {np.degrees(rotation_angle):.1f}° around face normal")
 
         return rotation_matrix
 
@@ -1421,9 +1361,7 @@ def _calculate_d10_pole_alignment(
             logger.debug(f"Face closer to top pole (distance: {distance_to_top:.2f})")
         else:
             target_pole = bottom_pole
-            logger.debug(
-                f"Face closer to bottom pole (distance: {distance_to_bottom:.2f})"
-            )
+            logger.debug(f"Face closer to bottom pole (distance: {distance_to_bottom:.2f})")
 
         # Calculate the direction from face center to the closest pole
         pole_direction = target_pole - face_center
@@ -1459,21 +1397,15 @@ def _calculate_d10_pole_alignment(
 
         # Project pole direction onto the face plane
         # The face plane is defined by the face normal
-        pole_direction_in_face_plane = (
-            pole_direction - np.dot(pole_direction, face_normal) * face_normal
-        )
+        pole_direction_in_face_plane = pole_direction - np.dot(pole_direction, face_normal) * face_normal
 
         # Normalize the projected direction (this will be our desired text up direction)
         if np.linalg.norm(pole_direction_in_face_plane) < 1e-6:
             # Pole direction is parallel to face normal, can't determine alignment
-            logger.debug(
-                "Pole direction is parallel to face normal, no alignment needed"
-            )
+            logger.debug("Pole direction is parallel to face normal, no alignment needed")
             return None
 
-        desired_text_up = pole_direction_in_face_plane / np.linalg.norm(
-            pole_direction_in_face_plane
-        )
+        desired_text_up = pole_direction_in_face_plane / np.linalg.norm(pole_direction_in_face_plane)
 
         # Calculate the rotation angle needed to align default_text_up with desired_text_up
         # Both vectors are in the face plane, so we rotate around the face normal
@@ -1486,14 +1418,10 @@ def _calculate_d10_pole_alignment(
         if np.dot(cross_product, face_normal) < 0:
             rotation_angle = -rotation_angle
 
-        logger.debug(
-            f"D10 pole alignment: rotating {np.degrees(rotation_angle):.1f}° around face normal"
-        )
+        logger.debug(f"D10 pole alignment: rotating {np.degrees(rotation_angle):.1f}° around face normal")
 
         # Create rotation matrix around face normal
-        rotation_matrix = trimesh.transformations.rotation_matrix(
-            rotation_angle, face_normal
-        )
+        rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, face_normal)
 
         return rotation_matrix
 
@@ -1530,16 +1458,12 @@ def _position_text_on_face(
         if np.linalg.norm(rotation_axis) > 1e-6:
             rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
             rotation_angle = np.arccos(np.clip(np.dot(z_axis, face_normal), -1, 1))
-            rotation_matrix = trimesh.transformations.rotation_matrix(
-                rotation_angle, rotation_axis
-            )
+            rotation_matrix = trimesh.transformations.rotation_matrix(rotation_angle, rotation_axis)
             text_mesh.apply_transform(rotation_matrix)
 
     # Special alignment for D20 (icosahedron) - align text with the closest edge
     if sides == 20 and face_vertices is not None and len(face_vertices) == 3:
-        edge_alignment_matrix = _calculate_d20_edge_alignment(
-            face_vertices, face_center, face_normal
-        )
+        edge_alignment_matrix = _calculate_d20_edge_alignment(face_vertices, face_center, face_normal)
         if edge_alignment_matrix is not None:
             text_mesh.apply_transform(edge_alignment_matrix)
 
@@ -1551,24 +1475,18 @@ def _position_text_on_face(
         if face_index is not None and face_index in problematic_face_indices:
             logger.debug(f"Applying 180° fix to problematic face index {face_index}")
             # Apply 180-degree rotation around the face normal
-            fix_rotation_matrix = trimesh.transformations.rotation_matrix(
-                np.pi, face_normal, point=face_center
-            )
+            fix_rotation_matrix = trimesh.transformations.rotation_matrix(np.pi, face_normal, point=face_center)
             text_mesh.apply_transform(fix_rotation_matrix)
 
     # Special alignment for D8 (octahedron) - align text with hemisphere-bridging edge
     if sides == 8 and face_vertices is not None and len(face_vertices) == 3:
-        edge_alignment_matrix = _calculate_d8_edge_alignment(
-            face_vertices, face_center, face_normal
-        )
+        edge_alignment_matrix = _calculate_d8_edge_alignment(face_vertices, face_center, face_normal)
         if edge_alignment_matrix is not None:
             text_mesh.apply_transform(edge_alignment_matrix)
 
     # Special alignment for D12 (dodecahedron) - align text with the closest edge
     if sides == 12 and face_vertices is not None and len(face_vertices) == 5:
-        edge_alignment_matrix = _calculate_d12_edge_alignment(
-            face_vertices, face_center, face_normal
-        )
+        edge_alignment_matrix = _calculate_d12_edge_alignment(face_vertices, face_center, face_normal)
         if edge_alignment_matrix is not None:
             text_mesh.apply_transform(edge_alignment_matrix)
 
@@ -1578,21 +1496,15 @@ def _position_text_on_face(
         problematic_d12_face_indices = {0, 1, 4, 7, 8}
 
         if face_index is not None and face_index in problematic_d12_face_indices:
-            logger.debug(
-                f"Applying 180° fix to problematic D12 face index {face_index}"
-            )
+            logger.debug(f"Applying 180° fix to problematic D12 face index {face_index}")
             # Apply 180-degree rotation around the face normal
-            fix_rotation_matrix = trimesh.transformations.rotation_matrix(
-                np.pi, face_normal, point=face_center
-            )
+            fix_rotation_matrix = trimesh.transformations.rotation_matrix(np.pi, face_normal, point=face_center)
             text_mesh.apply_transform(fix_rotation_matrix)
 
     # Special alignment for D10 (pentagonal trapezohedron) - align text toward closest pole
     if sides == 10:
         if radius is not None:
-            pole_alignment_matrix = _calculate_d10_pole_alignment(
-                face_center, face_normal, radius
-            )
+            pole_alignment_matrix = _calculate_d10_pole_alignment(face_center, face_normal, radius)
             if pole_alignment_matrix is not None:
                 text_mesh.apply_transform(pole_alignment_matrix)
         else:

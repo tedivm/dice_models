@@ -157,9 +157,7 @@ def demo_blank_dice():
     print("\nCreating blank dice for custom engraving...")
 
     for sides in [4, 6, 8, 10, 12, 20]:
-        dice = create_standard_dice(
-            sides=sides, radius=12.0, curve_resolution="highest"
-        )
+        dice = create_standard_dice(sides=sides, radius=12.0, curve_resolution="highest")
         output_path = output_dir / f"blank_d{sides}.stl"
         dice.export_stl(output_path, include_numbers=False)
         print(f"  ✓ Blank D{sides} saved to {output_path.name}")
@@ -212,9 +210,7 @@ def demo_font_specification():
                 text_depth=0.8,  # Deeper for better visibility
                 text_size=4.0,  # Larger for better comparison
             )
-            output_file = (
-                output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
-            )
+            output_file = output_dir / f"d6_font_{font_name.lower().replace(' ', '_')}.stl"
             d6_font.export_stl(output_file)
             print(f"  ✓ D6 created: {output_file.name}")
 
@@ -375,9 +371,7 @@ def demo_curve_resolution():
     output_dir.mkdir(exist_ok=True)
 
     print("\nDemonstrating curve resolution settings for optimal font quality...")
-    print(
-        "Characters with curves (like 8, 0, 6, 9) will show dramatic quality differences."
-    )
+    print("Characters with curves (like 8, 0, 6, 9) will show dramatic quality differences.")
 
     # Character with curves for best demonstration
     test_character = "8"

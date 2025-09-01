@@ -261,9 +261,7 @@ class TestCLIEdgeCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             nested_path = Path(temp_dir) / "nested" / "dirs" / "test_d8.stl"
 
-            result = self.runner.invoke(
-                app, ["generate", "8", str(nested_path), "--curve-resolution", "low"]
-            )
+            result = self.runner.invoke(app, ["generate", "8", str(nested_path), "--curve-resolution", "low"])
 
             assert result.exit_code == 0
             assert nested_path.exists()
@@ -275,9 +273,7 @@ class TestCLIEdgeCases:
             output_path = Path(temp_dir) / "overwrite_test.stl"
 
             # Create first file
-            result1 = self.runner.invoke(
-                app, ["generate", "4", str(output_path), "--curve-resolution", "low"]
-            )
+            result1 = self.runner.invoke(app, ["generate", "4", str(output_path), "--curve-resolution", "low"])
             assert result1.exit_code == 0
             first_size = output_path.stat().st_size
 
@@ -359,9 +355,7 @@ class TestCLIEdgeCases:
                 )
                 assert result.exit_code == 0
                 assert output_path.exists()
-                assert (
-                    "font" in result.stdout.lower() or output_path.stat().st_size > 1000
-                )
+                assert "font" in result.stdout.lower() or output_path.stat().st_size > 1000
 
     def test_generate_parameter_validation(self):
         """Test parameter validation edge cases."""
@@ -422,9 +416,7 @@ class TestCLIEdgeCases:
             invalid_config = Path(temp_dir) / "invalid.json"
             invalid_config.write_text("{ invalid json")
 
-            result = self.runner.invoke(
-                app, ["batch-generate", str(invalid_config), "--output-dir", temp_dir]
-            )
+            result = self.runner.invoke(app, ["batch-generate", str(invalid_config), "--output-dir", temp_dir])
             assert result.exit_code != 0
 
             # Test with valid JSON but invalid dice configuration
@@ -437,9 +429,7 @@ class TestCLIEdgeCases:
             with open(config_file, "w") as f:
                 json.dump(invalid_dice_config, f)
 
-            result = self.runner.invoke(
-                app, ["batch-generate", str(config_file), "--output-dir", temp_dir]
-            )
+            result = self.runner.invoke(app, ["batch-generate", str(config_file), "--output-dir", temp_dir])
             assert result.exit_code != 0
 
     def test_generate_layout_edge_cases(self):

@@ -22,9 +22,7 @@ class PolyhedronGeometry:
     """Base class for polyhedron geometry calculations."""
 
     @staticmethod
-    def get_vertices_and_faces(
-        polyhedron_type: PolyhedronType, radius: float = 1.0
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_vertices_and_faces(polyhedron_type: PolyhedronType, radius: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get vertices and faces for a given polyhedron type.
 
@@ -218,16 +216,12 @@ class PolyhedronGeometry:
         # The key is to break the symmetry between radial and diagonal edge lengths
 
         # Keep symmetry: both rings same radius, but dramatically adjust heights
-        ring1_radius = (
-            radius * 1.1
-        )  # Much larger rings to make ring-to-ring edges much longer
+        ring1_radius = radius * 1.1  # Much larger rings to make ring-to-ring edges much longer
         ring2_radius = radius * 1.1  # Same radius to maintain top/bottom symmetry
 
         # Move rings MUCH closer to center to make pole-to-ring edges much shorter
         ring1_height = polar_height * 0.1  # Upper ring very close to center
-        ring2_height = (
-            -polar_height * 0.1
-        )  # Lower ring very close to center (symmetric)
+        ring2_height = -polar_height * 0.1  # Lower ring very close to center (symmetric)
 
         # Ring 1: 5 vertices (upper ring) - same radius for symmetry
         for i in range(5):
@@ -257,9 +251,7 @@ class PolyhedronGeometry:
         # Bottom cap: connect bottom pole to lower ring (5 triangular faces)
         for i in range(5):
             next_i = (i + 1) % 5
-            faces.append(
-                [1, 7 + next_i, 7 + i]
-            )  # bottom pole to lower ring (reversed winding)
+            faces.append([1, 7 + next_i, 7 + i])  # bottom pole to lower ring (reversed winding)
 
         # Side faces: connect upper ring to lower ring (10 triangular faces)
         # These form the "kite" sides of the trapezohedron
@@ -326,9 +318,7 @@ class PolyhedronGeometry:
 
             # If normal points inward (dot product negative), flip the face
             if np.dot(normal, to_face) < 0:
-                corrected_faces.append(
-                    [face[0], face[2], face[1]]
-                )  # Flip winding order
+                corrected_faces.append([face[0], face[2], face[1]])  # Flip winding order
             else:
                 corrected_faces.append(face)
 
@@ -432,10 +422,8 @@ class PolyhedronGeometry:
             ray_direction = direction
 
             # Find intersection with dodecahedron surface
-            locations, ray_indices, triangle_indices = (
-                dodecahedron_mesh.ray.intersects_location(
-                    ray_origins=[ray_origin], ray_directions=[ray_direction]
-                )
+            locations, ray_indices, triangle_indices = dodecahedron_mesh.ray.intersects_location(
+                ray_origins=[ray_origin], ray_directions=[ray_direction]
             )
 
             if len(locations) > 0:
@@ -484,13 +472,11 @@ class PolyhedronGeometry:
         import trimesh
 
         # Create the actual dodecahedron mesh
-        dodecahedron_mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+        trimesh.Trimesh(vertices=vertices, faces=faces)
 
         # Get logical face centers first
-        logical_face_centers, _ = (
-            PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
-                vertices, faces, radius
-            )
+        logical_face_centers, _ = PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
+            vertices, faces, radius
         )
 
         logical_face_vertices = []
@@ -509,16 +495,12 @@ class PolyhedronGeometry:
 
             # Sort vertices in pentagonal order around the face center
             # Project vertices to a 2D plane centered at face_center
-            face_normal = face_center / np.linalg.norm(
-                face_center
-            )  # Points outward from origin
+            face_normal = face_center / np.linalg.norm(face_center)  # Points outward from origin
 
             # Create a coordinate system for the face plane
             # Use the first vertex as reference for the X direction
             to_first_vertex = face_verts[0] - face_center
-            to_first_vertex = (
-                to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
-            )
+            to_first_vertex = to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
             x_axis = to_first_vertex / np.linalg.norm(to_first_vertex)
             y_axis = np.cross(face_normal, x_axis)
 

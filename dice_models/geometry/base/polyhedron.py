@@ -36,9 +36,7 @@ class BasePolyhedron(ABC):
         pass
 
     @abstractmethod
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate the vertices and faces for this polyhedron type.
 

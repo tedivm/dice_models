@@ -31,9 +31,7 @@ class DiceFactory:
     }
 
     @classmethod
-    def create_dice(
-        cls, polyhedron_type: PolyhedronType, radius: float = 1.0
-    ) -> BasePolyhedron:
+    def create_dice(cls, polyhedron_type: PolyhedronType, radius: float = 1.0) -> BasePolyhedron:
         """
         Create a dice instance from a PolyhedronType enum.
 
@@ -70,9 +68,7 @@ class DiceFactory:
         """
         if sides not in cls._SIDES_TO_DICE:
             valid_sides = list(cls._SIDES_TO_DICE.keys())
-            raise ValueError(
-                f"Invalid number of sides: {sides}. Valid options: {valid_sides}"
-            )
+            raise ValueError(f"Invalid number of sides: {sides}. Valid options: {valid_sides}")
 
         dice_class = cls._SIDES_TO_DICE[sides]
         return dice_class(radius=radius)

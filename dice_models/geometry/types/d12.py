@@ -10,7 +10,7 @@ from ..base.polyhedron import BasePolyhedron
 class D12(BasePolyhedron):
     """
     Twelve-sided dice (dodecahedron) implementation.
-    
+
     The D12 is a regular dodecahedron with 12 pentagonal faces (triangulated).
     """
 
@@ -27,7 +27,7 @@ class D12(BasePolyhedron):
     def get_standard_number_layout(self) -> List[int]:
         """
         Get the standard number layout for a D12.
-        
+
         Returns:
             List of numbers [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] in face order
         """
@@ -36,10 +36,10 @@ class D12(BasePolyhedron):
     def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate dodecahedron vertices and faces with pentagonal faces triangulated.
-        
+
         Args:
             radius: The radius of the circumscribed sphere
-            
+
         Returns:
             Tuple of (vertices, faces) as numpy arrays
         """
@@ -130,10 +130,8 @@ class D12(BasePolyhedron):
             ray_direction = direction
 
             # Find intersection with dodecahedron surface
-            locations, ray_indices, triangle_indices = (
-                dodecahedron_mesh.ray.intersects_location(
-                    ray_origins=[ray_origin], ray_directions=[ray_direction]
-                )
+            locations, ray_indices, triangle_indices = dodecahedron_mesh.ray.intersects_location(
+                ray_origins=[ray_origin], ray_directions=[ray_direction]
             )
 
             if len(locations) > 0:
@@ -161,9 +159,7 @@ class D12(BasePolyhedron):
 
         return np.array(logical_face_centers), np.array(logical_face_normals)
 
-    def get_logical_face_vertices(
-        self, vertices: np.ndarray, faces: np.ndarray
-    ) -> List[np.ndarray]:
+    def get_logical_face_vertices(self, vertices: np.ndarray, faces: np.ndarray) -> List[np.ndarray]:
         """
         Get the vertices for the 12 logical pentagonal faces of a dodecahedron.
 
@@ -177,7 +173,6 @@ class D12(BasePolyhedron):
         Returns:
             List of 12 arrays, each containing 5 vertices of a pentagonal face
         """
-        import trimesh
         logical_face_centers, _ = self.get_logical_face_centers_and_normals(vertices, faces)
 
         logical_face_vertices = []
@@ -201,9 +196,7 @@ class D12(BasePolyhedron):
             # Create a coordinate system for the face plane
             # Use the first vertex as reference for the X direction
             to_first_vertex = face_verts[0] - face_center
-            to_first_vertex = (
-                to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
-            )
+            to_first_vertex = to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
             x_axis = to_first_vertex / np.linalg.norm(to_first_vertex)
             y_axis = np.cross(face_normal, x_axis)
 

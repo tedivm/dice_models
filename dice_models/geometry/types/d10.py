@@ -34,9 +34,7 @@ class D10(BasePolyhedron):
         """
         return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate pentagonal trapezohedron (D10) vertices and faces.
 
@@ -61,16 +59,12 @@ class D10(BasePolyhedron):
         # The key is to break the symmetry between radial and diagonal edge lengths
 
         # Keep symmetry: both rings same radius, but dramatically adjust heights
-        ring1_radius = (
-            radius * 1.1
-        )  # Much larger rings to make ring-to-ring edges much longer
+        ring1_radius = radius * 1.1  # Much larger rings to make ring-to-ring edges much longer
         ring2_radius = radius * 1.1  # Same radius to maintain top/bottom symmetry
 
         # Move rings MUCH closer to center to make pole-to-ring edges much shorter
         ring1_height = polar_height * 0.1  # Upper ring very close to center
-        ring2_height = (
-            -polar_height * 0.1
-        )  # Lower ring very close to center (symmetric)
+        ring2_height = -polar_height * 0.1  # Lower ring very close to center (symmetric)
 
         # Ring 1: 5 vertices (upper ring) - same radius for symmetry
         for i in range(5):

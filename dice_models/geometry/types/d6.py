@@ -11,7 +11,7 @@ from ..base.polyhedron import BasePolyhedron
 class D6(BasePolyhedron):
     """
     Six-sided dice (cube) implementation.
-    
+
     The D6 is a regular cube with 6 square faces.
     """
 
@@ -28,7 +28,7 @@ class D6(BasePolyhedron):
     def get_standard_number_layout(self) -> List[int]:
         """
         Get the standard number layout for a D6.
-        
+
         Returns:
             List of numbers [1, 2, 3, 4, 5, 6] in face order
         """
@@ -37,33 +37,37 @@ class D6(BasePolyhedron):
     def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate cube vertices and faces.
-        
+
         Args:
             radius: The radius of the circumscribed sphere
-            
+
         Returns:
             Tuple of (vertices, faces) as numpy arrays
         """
         # Cube vertices (inscribed in sphere of given radius)
         a = radius / math.sqrt(3)
-        vertices = np.array([
-            [-a, -a, -a],
-            [a, -a, -a],
-            [a, a, -a],
-            [-a, a, -a],
-            [-a, -a, a],
-            [a, -a, a],
-            [a, a, a],
-            [-a, a, a],
-        ])
+        vertices = np.array(
+            [
+                [-a, -a, -a],
+                [a, -a, -a],
+                [a, a, -a],
+                [-a, a, -a],
+                [-a, -a, a],
+                [a, -a, a],
+                [a, a, a],
+                [-a, a, a],
+            ]
+        )
 
-        faces = np.array([
-            [0, 1, 2, 3],  # Bottom
-            [4, 7, 6, 5],  # Top
-            [0, 4, 5, 1],  # Front
-            [2, 6, 7, 3],  # Back
-            [0, 3, 7, 4],  # Left
-            [1, 5, 6, 2],  # Right
-        ])
+        faces = np.array(
+            [
+                [0, 1, 2, 3],  # Bottom
+                [4, 7, 6, 5],  # Top
+                [0, 4, 5, 1],  # Front
+                [2, 6, 7, 3],  # Back
+                [0, 3, 7, 4],  # Left
+                [1, 5, 6, 2],  # Right
+            ]
+        )
 
         return vertices, faces
