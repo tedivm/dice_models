@@ -84,6 +84,7 @@ numpy==2.3.2
     #   pycollada
     #   scipy
     #   shapely
+    #   triangle
     #   trimesh
     #   vhacdx
 numpy-stl==3.2.0
@@ -181,7 +182,9 @@ toml-sort==0.24.2
     # via dice-models (pyproject.toml)
 tomlkit==0.13.3
     # via toml-sort
-trimesh==4.7.4
+triangle==20250106
+    # via dice-models (pyproject.toml)
+trimesh==4.8.0
     # via dice-models (pyproject.toml)
 typer==0.17.3
     # via
