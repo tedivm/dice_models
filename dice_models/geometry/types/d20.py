@@ -1,7 +1,7 @@
 """D20 (Icosahedron) dice geometry implementation."""
 
 import math
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -16,6 +16,59 @@ class D20(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D20."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(range(1, 21)),  # [1, 2, 3, ..., 20]
+            LayoutType.OPPOSING_BALANCED: [
+                1,
+                20,
+                2,
+                19,
+                3,
+                18,
+                4,
+                17,
+                5,
+                16,
+                6,
+                15,
+                7,
+                14,
+                8,
+                13,
+                9,
+                12,
+                10,
+                11,
+            ],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [
+                20,
+                1,
+                19,
+                2,
+                18,
+                3,
+                17,
+                4,
+                16,
+                5,
+                15,
+                6,
+                14,
+                7,
+                13,
+                8,
+                12,
+                9,
+                11,
+                10,
+            ],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (20) for an icosahedron."""
         return 20
@@ -25,16 +78,9 @@ class D20(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "ICOSAHEDRON"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D20.
-
-        Returns:
-            List of numbers [1, 2, 3, ..., 20] in face order
-        """
-        return list(range(1, 21))
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate icosahedron vertices and faces.
 

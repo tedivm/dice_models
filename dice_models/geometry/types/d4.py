@@ -1,7 +1,7 @@
 """D4 (Tetrahedron) dice geometry implementation."""
 
 import math
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -16,6 +16,17 @@ class D4(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D4."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(range(1, 5)),  # [1, 2, 3, 4]
+            LayoutType.OPPOSING_BALANCED: [1, 4, 2, 3],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [4, 1, 3, 2],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (4) for a tetrahedron."""
         return 4
@@ -25,16 +36,9 @@ class D4(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "TETRAHEDRON"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D4.
-
-        Returns:
-            List of numbers [1, 2, 3, 4] in face order
-        """
-        return [1, 2, 3, 4]
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate tetrahedron vertices and faces.
 

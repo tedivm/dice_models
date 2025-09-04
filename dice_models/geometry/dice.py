@@ -9,7 +9,7 @@ import trimesh
 from stl import mesh
 
 from .compatibility import PolyhedronGeometry
-from .layouts import get_standard_number_layout
+from .layouts import LayoutType, get_standard_number_layout
 from .polyhedra import PolyhedronType
 from .text import create_engraved_number
 
@@ -38,7 +38,9 @@ def resolve_curve_resolution(resolution: Union[str, int]) -> int:
 
     if resolution.lower() not in resolution_map:
         valid_options = ", ".join(resolution_map.keys())
-        raise ValueError(f"Invalid curve resolution '{resolution}'. Must be one of: {valid_options}")
+        raise ValueError(
+            f"Invalid curve resolution '{resolution}'. Must be one of: {valid_options}"
+        )
 
     return resolution_map[resolution.lower()]
 
@@ -51,6 +53,7 @@ class DiceGeometry:
         polyhedron_type: PolyhedronType,
         radius: float = 10.0,
         number_layout: Optional[List[int]] = None,
+        layout_type: LayoutType = LayoutType.OPPOSING_BALANCED,
         font_path: Optional[str] = None,
         text_depth: float = 0.5,
         text_size: float = 6.0,
@@ -62,7 +65,8 @@ class DiceGeometry:
         Args:
             polyhedron_type: Type of polyhedron to generate
             radius: Radius of the circumscribed sphere in mm
-            number_layout: Custom number layout for faces. If None, uses standard layout
+            number_layout: Custom number layout for faces. If None, uses layout_type
+            layout_type: Type of standard layout to use (ignored if number_layout is provided)
             font_path: Path to TTF font file for numbers
             text_depth: Depth of number engraving in mm
             text_size: Size of numbers in mm
@@ -76,10 +80,13 @@ class DiceGeometry:
         self.text_depth = text_depth
         self.text_size = text_size
         self.curve_resolution = resolve_curve_resolution(curve_resolution)
+        self.layout_type = layout_type
 
         # Set number layout
         if number_layout is None:
-            self.number_layout = get_standard_number_layout(polyhedron_type)
+            self.number_layout = get_standard_number_layout(
+                polyhedron_type, layout_type
+            )
         else:
             expected_faces = polyhedron_type.value
             if len(number_layout) != expected_faces:
@@ -90,18 +97,26 @@ class DiceGeometry:
             self.number_layout = number_layout
 
         # Generate base geometry
-        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(polyhedron_type, radius)
+        self.vertices, self.faces = PolyhedronGeometry.get_vertices_and_faces(
+            polyhedron_type, radius
+        )
 
         # Calculate face centers and normals
         if polyhedron_type == PolyhedronType.DODECAHEDRON:
             # Special handling for dodecahedron - use logical pentagonal faces
-            self.face_centers, self.face_normals = PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
-                self.vertices, self.faces, radius
+            self.face_centers, self.face_normals = (
+                PolyhedronGeometry.get_dodecahedron_logical_face_centers_and_normals(
+                    self.vertices, self.faces, radius
+                )
             )
         else:
             # Standard calculation for all other polyhedra
-            self.face_centers = PolyhedronGeometry.get_face_centers(self.vertices, self.faces)
-            self.face_normals = PolyhedronGeometry.get_face_normals(self.vertices, self.faces)
+            self.face_centers = PolyhedronGeometry.get_face_centers(
+                self.vertices, self.faces
+            )
+            self.face_normals = PolyhedronGeometry.get_face_normals(
+                self.vertices, self.faces
+            )
 
     @property
     def sides(self) -> int:
@@ -192,16 +207,22 @@ class DiceGeometry:
             try:
                 # Get face vertices for D20, D12, and D8 edge alignment
                 face_vertices = None
-                if self.polyhedron_type == PolyhedronType.ICOSAHEDRON and i < len(self.faces):
+                if self.polyhedron_type == PolyhedronType.ICOSAHEDRON and i < len(
+                    self.faces
+                ):
                     # D20: Use triangular face vertices directly
                     face_vertices = self.vertices[self.faces[i]]
-                elif self.polyhedron_type == PolyhedronType.OCTAHEDRON and i < len(self.faces):
+                elif self.polyhedron_type == PolyhedronType.OCTAHEDRON and i < len(
+                    self.faces
+                ):
                     # D8: Use triangular face vertices directly
                     face_vertices = self.vertices[self.faces[i]]
                 elif self.polyhedron_type == PolyhedronType.DODECAHEDRON and i < 12:
                     # D12: Use logical pentagonal face vertices
-                    logical_face_vertices = PolyhedronGeometry.get_dodecahedron_logical_face_vertices(
-                        self.vertices, self.faces, self.radius
+                    logical_face_vertices = (
+                        PolyhedronGeometry.get_dodecahedron_logical_face_vertices(
+                            self.vertices, self.faces, self.radius
+                        )
                     )
                     if i < len(logical_face_vertices):
                         face_vertices = logical_face_vertices[i]
@@ -220,7 +241,9 @@ class DiceGeometry:
                     face_index=i,
                     radius=self.radius,
                 )
-                logger.debug(f"Successfully engraved number {number} on face {i + 1}/{max_faces}")
+                logger.debug(
+                    f"Successfully engraved number {number} on face {i + 1}/{max_faces}"
+                )
             except Exception as e:
                 logger.exception(f"Failed to add number {number} to face {i}: {e}")
 
@@ -244,7 +267,9 @@ class DiceGeometry:
         dice_mesh.export(str(output_path))
         logger.info(f"Exported {self.polyhedron_type.name} dice to {output_path}")
 
-    def export_stl_numpy(self, output_path: str | Path, include_numbers: bool = True) -> None:
+    def export_stl_numpy(
+        self, output_path: str | Path, include_numbers: bool = True
+    ) -> None:
         """
         Export the dice model to an STL file using numpy-stl.
 
@@ -281,6 +306,9 @@ class DiceGeometry:
             "sides": self.polyhedron_type.value,
             "radius": self.radius,
             "number_layout": self.number_layout,
+            "layout_type": (
+                self.layout_type.value if hasattr(self, "layout_type") else None
+            ),
             "vertex_count": len(self.vertices),
             "face_count": len(self.faces),
             "font_path": self.font_path,
@@ -294,6 +322,7 @@ def create_standard_dice(
     sides: int,
     radius: float = 10.0,
     output_path: Optional[str | Path] = None,
+    layout_type: LayoutType = LayoutType.OPPOSING_BALANCED,
     **kwargs,
 ) -> DiceGeometry:
     """
@@ -303,8 +332,10 @@ def create_standard_dice(
         sides: Number of sides (4, 6, 8, 10, 12, or 20)
         radius: Radius of the dice in mm
         output_path: If provided, export STL to this path
+        layout_type: Type of standard layout to use
         **kwargs: Additional arguments passed to DiceGeometry, including:
             - curve_resolution: "low", "medium", "high", "highest", or integer
+            - number_layout: Custom layout (overrides layout_type)
 
     Returns:
         DiceGeometry object
@@ -324,10 +355,17 @@ def create_standard_dice(
 
     if sides not in sides_to_type:
         valid_sides = list(sides_to_type.keys())
-        raise ValueError(f"Invalid number of sides: {sides}. Valid options: {valid_sides}")
+        raise ValueError(
+            f"Invalid number of sides: {sides}. Valid options: {valid_sides}"
+        )
 
     polyhedron_type = sides_to_type[sides]
-    dice = DiceGeometry(polyhedron_type=polyhedron_type, radius=radius, **kwargs)
+    dice = DiceGeometry(
+        polyhedron_type=polyhedron_type,
+        radius=radius,
+        layout_type=layout_type,
+        **kwargs,
+    )
 
     if output_path:
         dice.export_stl(output_path)

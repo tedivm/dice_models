@@ -15,6 +15,45 @@ class D12(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D12."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(
+                range(1, 13)
+            ),  # [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+            LayoutType.OPPOSING_BALANCED: [
+                1,
+                12,
+                2,
+                11,
+                3,
+                10,
+                4,
+                9,
+                5,
+                8,
+                6,
+                7,
+            ],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [
+                12,
+                1,
+                11,
+                2,
+                10,
+                3,
+                9,
+                4,
+                8,
+                5,
+                7,
+                6,
+            ],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (12) for a dodecahedron."""
         return 12
@@ -24,16 +63,9 @@ class D12(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "DODECAHEDRON"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D12.
-
-        Returns:
-            List of numbers [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] in face order
-        """
-        return list(range(1, 13))
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate dodecahedron vertices and faces with pentagonal faces triangulated.
 
@@ -86,7 +118,9 @@ class D12(BasePolyhedron):
 
             # If normal points inward (dot product negative), flip the face
             if np.dot(normal, to_face) < 0:
-                corrected_faces.append([face[0], face[2], face[1]])  # Flip winding order
+                corrected_faces.append(
+                    [face[0], face[2], face[1]]
+                )  # Flip winding order
             else:
                 corrected_faces.append(face)
 
@@ -130,8 +164,10 @@ class D12(BasePolyhedron):
             ray_direction = direction
 
             # Find intersection with dodecahedron surface
-            locations, ray_indices, triangle_indices = dodecahedron_mesh.ray.intersects_location(
-                ray_origins=[ray_origin], ray_directions=[ray_direction]
+            locations, ray_indices, triangle_indices = (
+                dodecahedron_mesh.ray.intersects_location(
+                    ray_origins=[ray_origin], ray_directions=[ray_direction]
+                )
             )
 
             if len(locations) > 0:
@@ -159,7 +195,9 @@ class D12(BasePolyhedron):
 
         return np.array(logical_face_centers), np.array(logical_face_normals)
 
-    def get_logical_face_vertices(self, vertices: np.ndarray, faces: np.ndarray) -> List[np.ndarray]:
+    def get_logical_face_vertices(
+        self, vertices: np.ndarray, faces: np.ndarray
+    ) -> List[np.ndarray]:
         """
         Get the vertices for the 12 logical pentagonal faces of a dodecahedron.
 
@@ -173,7 +211,9 @@ class D12(BasePolyhedron):
         Returns:
             List of 12 arrays, each containing 5 vertices of a pentagonal face
         """
-        logical_face_centers, _ = self.get_logical_face_centers_and_normals(vertices, faces)
+        logical_face_centers, _ = self.get_logical_face_centers_and_normals(
+            vertices, faces
+        )
 
         logical_face_vertices = []
 
@@ -191,12 +231,16 @@ class D12(BasePolyhedron):
 
             # Sort vertices in pentagonal order around the face center
             # Project vertices to a 2D plane centered at face_center
-            face_normal = face_center / np.linalg.norm(face_center)  # Points outward from origin
+            face_normal = face_center / np.linalg.norm(
+                face_center
+            )  # Points outward from origin
 
             # Create a coordinate system for the face plane
             # Use the first vertex as reference for the X direction
             to_first_vertex = face_verts[0] - face_center
-            to_first_vertex = to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
+            to_first_vertex = (
+                to_first_vertex - np.dot(to_first_vertex, face_normal) * face_normal
+            )
             x_axis = to_first_vertex / np.linalg.norm(to_first_vertex)
             y_axis = np.cross(face_normal, x_axis)
 

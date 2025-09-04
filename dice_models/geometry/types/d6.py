@@ -1,7 +1,7 @@
 """D6 (Cube) dice geometry implementation."""
 
 import math
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -16,6 +16,17 @@ class D6(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D6."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(range(1, 7)),  # [1, 2, 3, 4, 5, 6]
+            LayoutType.OPPOSING_BALANCED: [1, 6, 2, 5, 3, 4],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [6, 1, 5, 2, 4, 3],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (6) for a cube."""
         return 6
@@ -25,16 +36,9 @@ class D6(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "CUBE"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D6.
-
-        Returns:
-            List of numbers [1, 2, 3, 4, 5, 6] in face order
-        """
-        return [1, 2, 3, 4, 5, 6]
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate cube vertices and faces.
 

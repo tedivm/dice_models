@@ -1,6 +1,6 @@
 """D8 (Octahedron) dice geometry implementation."""
 
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -15,6 +15,35 @@ class D8(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D8."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(range(1, 9)),  # [1, 2, 3, 4, 5, 6, 7, 8]
+            LayoutType.OPPOSING_BALANCED: [
+                1,
+                8,
+                2,
+                7,
+                3,
+                6,
+                4,
+                5,
+            ],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [
+                8,
+                1,
+                7,
+                2,
+                6,
+                3,
+                5,
+                4,
+            ],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (8) for an octahedron."""
         return 8
@@ -24,16 +53,9 @@ class D8(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "OCTAHEDRON"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D8.
-
-        Returns:
-            List of numbers [1, 2, 3, 4, 5, 6, 7, 8] in face order
-        """
-        return [1, 2, 3, 4, 5, 6, 7, 8]
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate octahedron vertices and faces.
 

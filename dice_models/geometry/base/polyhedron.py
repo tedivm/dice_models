@@ -36,7 +36,9 @@ class BasePolyhedron(ABC):
         pass
 
     @abstractmethod
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate the vertices and faces for this polyhedron type.
 
@@ -48,15 +50,33 @@ class BasePolyhedron(ABC):
         """
         pass
 
-    @abstractmethod
     def get_standard_number_layout(self) -> List[int]:
         """
         Get the standard number layout for this dice type.
+        This method is now deprecated, use get_layout() instead.
 
         Returns:
             List of numbers in face order
         """
-        pass
+        # Avoid circular import
+        from ..layouts import LayoutType
+
+        return self.get_layout(LayoutType.OPPOSING_BALANCED)
+
+    def get_layout(self, layout_type) -> List[int]:
+        """
+        Get the number layout for the specified layout type.
+
+        Args:
+            layout_type: The LayoutType to generate
+
+        Returns:
+            List of numbers in face order
+        """
+        if layout_type in self.layouts:
+            return self.layouts[layout_type]
+
+        return list(range(1, self.sides + 1))
 
     def get_vertices_and_faces(self) -> Tuple[np.ndarray, np.ndarray]:
         """

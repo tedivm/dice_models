@@ -1,7 +1,7 @@
 """D10 (Pentagonal Trapezohedron) dice geometry implementation."""
 
 import math
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
 
@@ -16,6 +16,39 @@ class D10(BasePolyhedron):
     """
 
     @property
+    def layouts(self) -> dict:
+        """Return the available layouts for D10."""
+        from ..layouts import LayoutType
+
+        return {
+            LayoutType.NAIVE: list(range(0, 10)),  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+            LayoutType.OPPOSING_BALANCED: [
+                0,
+                9,
+                1,
+                8,
+                2,
+                7,
+                3,
+                6,
+                4,
+                5,
+            ],  # Balanced arrangement
+            LayoutType.OPPOSING_WEIGHTED: [
+                9,
+                0,
+                8,
+                1,
+                7,
+                2,
+                6,
+                3,
+                5,
+                4,
+            ],  # High numbers clustered
+        }
+
+    @property
     def sides(self) -> int:
         """Return the number of sides (10) for a pentagonal trapezohedron."""
         return 10
@@ -25,16 +58,9 @@ class D10(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "PENTAGONAL_TRAPEZOHEDRON"
 
-    def get_standard_number_layout(self) -> List[int]:
-        """
-        Get the standard number layout for a D10.
-
-        Returns:
-            List of numbers [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] in face order
-        """
-        return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(
+        self, radius: float
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate pentagonal trapezohedron (D10) vertices and faces.
 
@@ -59,12 +85,16 @@ class D10(BasePolyhedron):
         # The key is to break the symmetry between radial and diagonal edge lengths
 
         # Keep symmetry: both rings same radius, but dramatically adjust heights
-        ring1_radius = radius * 1.1  # Much larger rings to make ring-to-ring edges much longer
+        ring1_radius = (
+            radius * 1.1
+        )  # Much larger rings to make ring-to-ring edges much longer
         ring2_radius = radius * 1.1  # Same radius to maintain top/bottom symmetry
 
         # Move rings MUCH closer to center to make pole-to-ring edges much shorter
         ring1_height = polar_height * 0.1  # Upper ring very close to center
-        ring2_height = -polar_height * 0.1  # Lower ring very close to center (symmetric)
+        ring2_height = (
+            -polar_height * 0.1
+        )  # Lower ring very close to center (symmetric)
 
         # Ring 1: 5 vertices (upper ring) - same radius for symmetry
         for i in range(5):
