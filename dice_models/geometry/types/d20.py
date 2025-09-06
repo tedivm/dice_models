@@ -15,6 +15,17 @@ class D20(BasePolyhedron):
     The D20 is a regular icosahedron with 20 triangular faces.
     """
 
+    # 1 - 20 - A
+    # 2 - 16 - B
+    # 3 - 17 - C
+    # 4 - 18 - D
+    # 5 - 19 - E
+    # 6 - 11 - F
+    # 7 - 12 - G
+    # 8 - 13 - H
+    # 9 - 14 - I
+    # 10 - 15 - J
+
     @property
     def layouts(self) -> dict:
         """Return the available layouts for D20."""
@@ -23,48 +34,48 @@ class D20(BasePolyhedron):
         return {
             LayoutType.NAIVE: list(range(1, 21)),  # [1, 2, 3, ..., 20]
             LayoutType.OPPOSING_BALANCED: [
-                1,
-                20,
-                2,
-                19,
-                3,
-                18,
-                4,
-                17,
-                5,
-                16,
-                6,
-                15,
-                7,
-                14,
-                8,
-                13,
-                9,
-                12,
-                10,
-                11,
+                1,  # A
+                19,  # B
+                3,  # C
+                17,  # D
+                5,  # E
+                15,  # F
+                7,  # G
+                13,  # H
+                9,  # I
+                11,  # J
+                6,  # F
+                14,  # G
+                8,  # H
+                12,  # I
+                10,  # J
+                2,  # B
+                18,  # C
+                4,  # D
+                16,  # E
+                20,  # A
             ],  # Balanced arrangement
             LayoutType.OPPOSING_WEIGHTED: [
-                20,
-                1,
-                19,
-                2,
-                18,
-                3,
-                17,
-                4,
-                16,
-                5,
-                15,
-                6,
-                14,
-                7,
-                13,
-                8,
-                12,
-                9,
-                11,
-                10,
+                1,  # A
+                2,  # B
+                8,  # C
+                5,  # D
+                4,  # E
+                6,  # F
+                7,  # G
+                3,  # H
+                9,  # I
+                10,  # J
+                15,  # F
+                14,  # G
+                18,  # H
+                12,  # I
+                11,  # J
+                19,  # B
+                13,  # C
+                16,  # D
+                17,  # E
+                20,  # A
             ],  # High numbers clustered
         }
 
@@ -78,9 +89,7 @@ class D20(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "ICOSAHEDRON"
 
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate icosahedron vertices and faces.
 

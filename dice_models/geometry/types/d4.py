@@ -36,9 +36,7 @@ class D4(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "TETRAHEDRON"
 
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate tetrahedron vertices and faces.
 

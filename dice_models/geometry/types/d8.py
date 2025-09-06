@@ -21,26 +21,28 @@ class D8(BasePolyhedron):
 
         return {
             LayoutType.NAIVE: list(range(1, 9)),  # [1, 2, 3, 4, 5, 6, 7, 8]
+            # Real opposing pairs: (0,6), (1,7), (2,4), (3,5)
+            # Each pair must sum to 9: (1,8), (2,7), (3,6), (4,5)
             LayoutType.OPPOSING_BALANCED: [
                 1,
-                8,
                 2,
-                7,
                 3,
-                6,
                 4,
+                6,
                 5,
-            ],  # Balanced arrangement
+                8,
+                7,
+            ],  # 1↔8, 2↔7, 3↔6, 4↔5
             LayoutType.OPPOSING_WEIGHTED: [
                 8,
-                1,
                 7,
-                2,
                 6,
-                3,
                 5,
+                3,
                 4,
-            ],  # High numbers clustered
+                1,
+                2,
+            ],  # 8↔1, 7↔2, 6↔3, 5↔4
         }
 
     @property
@@ -53,9 +55,7 @@ class D8(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "OCTAHEDRON"
 
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate octahedron vertices and faces.
 

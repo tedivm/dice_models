@@ -36,9 +36,7 @@ class D6(BasePolyhedron):
         """Return the name of this polyhedron type."""
         return "CUBE"
 
-    def _generate_vertices_and_faces(
-        self, radius: float
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def _generate_vertices_and_faces(self, radius: float) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generate cube vertices and faces.
 

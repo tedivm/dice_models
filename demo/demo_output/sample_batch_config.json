@@ -1,0 +1,46 @@
+{
+  "dice": [
+    {
+      "sides": 4,
+      "filename": "batch_d4.stl",
+      "radius": 8.0,
+      "text_depth": 0.6,
+      "text_size": 2.5
+    },
+    {
+      "sides": 6,
+      "filename": "batch_d6.stl",
+      "radius": 10.0,
+      "text_depth": 0.6,
+      "text_size": 3.5
+    },
+    {
+      "sides": 8,
+      "filename": "batch_d8.stl",
+      "radius": 10.0,
+      "text_depth": 0.6,
+      "text_size": 3.5
+    },
+    {
+      "sides": 10,
+      "filename": "batch_d10.stl",
+      "radius": 10.0,
+      "text_depth": 0.6,
+      "text_size": 3.5
+    },
+    {
+      "sides": 12,
+      "filename": "batch_d12.stl",
+      "radius": 10.0,
+      "text_depth": 0.8,
+      "text_size": 4.0
+    },
+    {
+      "sides": 20,
+      "filename": "batch_d20.stl",
+      "radius": 15.0,
+      "text_depth": 1.0,
+      "text_size": 4.5
+    }
+  ]
+}

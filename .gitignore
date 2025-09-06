@@ -163,4 +163,4 @@ cython_debug/
 # scm-version file
 dice_models/_version.py
 *.stl
-!/demo/demo_output/*.stl
+!/demo/demo_output/**/*.stl
