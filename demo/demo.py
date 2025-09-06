@@ -62,9 +62,7 @@ def create_single_dice_worker(args: Tuple[int, Path, dict]) -> Tuple[int, str, f
     return sides, output_path.name, size_kb
 
 
-def create_dice_set(
-    output_dir: Path, demo_name: str, custom_settings: dict = None
-) -> None:
+def create_dice_set(output_dir: Path, demo_name: str, custom_settings: dict = None) -> None:
     """
     Create a complete set of dice for a demo with specified custom settings.
     Uses multiprocessing to create all dice in parallel for faster generation.
@@ -92,10 +90,7 @@ def create_dice_set(
     # Use ProcessPoolExecutor to create dice in parallel
     with ProcessPoolExecutor() as executor:
         # Submit all dice creation tasks
-        future_to_sides = {
-            executor.submit(create_single_dice_worker, args): args[0]
-            for args in worker_args
-        }
+        future_to_sides = {executor.submit(create_single_dice_worker, args): args[0] for args in worker_args}
 
         # Collect results as they complete
         results = []
@@ -116,9 +111,7 @@ def create_dice_set(
         dice_count = len(results)
 
         # Display final results with timing
-        print(
-            f"  Generated {dice_count} dice in {elapsed_time:.1f}s (parallel processing)"
-        )
+        print(f"  Generated {dice_count} dice in {elapsed_time:.1f}s (parallel processing)")
         for sides, filename, size_kb in results:
             print(f"    D{sides}: {filename} ({size_kb:.1f} KB)")
 
@@ -162,9 +155,7 @@ def demo_custom_number_layouts() -> None:
         dice = create_standard_dice(sides=sides, number_layout=reverse_layout)
         dice.export_stl(demo_dir / f"d{sides}.stl")
 
-        print(
-            f"  D{sides} reverse: {reverse_layout[:5]}{'...' if len(reverse_layout) > 5 else ''}"
-        )
+        print(f"  D{sides} reverse: {reverse_layout[:5]}{'...' if len(reverse_layout) > 5 else ''}")
 
 
 def demo_text_customization() -> None:
@@ -178,9 +169,7 @@ def demo_text_customization() -> None:
 
     # Small, shallow text
     print("\nSmall, shallow text:")
-    create_dice_set(
-        output_dir, "text_small_shallow", {"text_depth": 0.3, "text_size": 2.0}
-    )
+    create_dice_set(output_dir, "text_small_shallow", {"text_depth": 0.3, "text_size": 2.0})
 
     # Large, deep text
     print("\nLarge, deep text:")
@@ -443,9 +432,7 @@ def all() -> None:
         print("=" * 60)
         print("All STL files have been created in organized subdirectories")
         print("within the 'demo_output' directory.")
-        print(
-            f"Total generation time: {elapsed_time:.1f} seconds (with parallel processing)"
-        )
+        print(f"Total generation time: {elapsed_time:.1f} seconds (with parallel processing)")
 
         # Show summary
         output_dir = Path("demo_output")
@@ -453,9 +440,7 @@ def all() -> None:
             subdirs = [d for d in output_dir.iterdir() if d.is_dir()]
             total_files = sum(len(list(subdir.glob("*.stl"))) for subdir in subdirs)
 
-            print(
-                f"\nGenerated {total_files} STL files across {len(subdirs)} demo categories:"
-            )
+            print(f"\nGenerated {total_files} STL files across {len(subdirs)} demo categories:")
             for subdir in sorted(subdirs):
                 files = list(subdir.glob("*.stl"))
                 print(f"  {subdir.name}: {len(files)} files")
