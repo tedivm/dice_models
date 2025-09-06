@@ -164,3 +164,4 @@ cython_debug/
 dice_models/_version.py
 *.stl
 !/demo/demo_output/**/*.stl
+/demo_output/

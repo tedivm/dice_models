@@ -49,7 +49,7 @@ class DiceGeometry:
     def __init__(
         self,
         polyhedron_type: PolyhedronType,
-        radius: float = 10.0,
+        radius: float = 16.0,
         number_layout: Optional[List[int]] = None,
         layout_type: LayoutType = LayoutType.OPPOSING_BALANCED,
         font_path: Optional[str] = None,
@@ -296,7 +296,7 @@ class DiceGeometry:
 
 def create_standard_dice(
     sides: int,
-    radius: float = 10.0,
+    radius: float = 16.0,
     output_path: Optional[str | Path] = None,
     layout_type: LayoutType = LayoutType.OPPOSING_BALANCED,
     **kwargs,

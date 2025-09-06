@@ -39,7 +39,7 @@ def version():
 def generate(
     sides: int = typer.Argument(..., help="Number of sides (4, 6, 8, 10, 12, or 20)"),
     output: str = typer.Argument(..., help="Output STL file path"),
-    radius: float = typer.Option(10.0, "--radius", "-r", help="Radius of the dice in mm"),
+    radius: float = typer.Option(16.0, "--radius", "-r", help="Radius of the dice in mm"),
     font_path: Optional[str] = typer.Option(None, "--font", "-f", help="Path to TTF font file"),
     text_depth: float = typer.Option(0.5, "--text-depth", help="Depth of number engraving in mm"),
     text_size: float = typer.Option(3.0, "--text-size", help="Size of numbers in mm"),

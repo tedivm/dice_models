@@ -31,7 +31,7 @@ class DiceFactory:
     }
 
     @classmethod
-    def create_dice(cls, polyhedron_type: PolyhedronType, radius: float = 1.0) -> BasePolyhedron:
+    def create_dice(cls, polyhedron_type: PolyhedronType, radius: float = 16.0) -> BasePolyhedron:
         """
         Create a dice instance from a PolyhedronType enum.
 
@@ -52,7 +52,7 @@ class DiceFactory:
         return dice_class(radius=radius)
 
     @classmethod
-    def create_dice_by_sides(cls, sides: int, radius: float = 1.0) -> BasePolyhedron:
+    def create_dice_by_sides(cls, sides: int, radius: float = 16.0) -> BasePolyhedron:
         """
         Create a dice instance from the number of sides.
 

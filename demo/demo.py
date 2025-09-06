@@ -4,6 +4,10 @@ Comprehensive demonstration of the dice_models library.
 
 This refactored demo system demonstrates all key features of the dice_models library
 with a clean CLI interface and organized output structure.
+
+The demo uses the library's default settings whenever possible, allowing it to automatically
+stay up-to-date with any changes to the library defaults. Custom settings are only specified
+when they are the focus of a particular demonstration.
 """
 
 import os
@@ -18,7 +22,7 @@ import typer
 # Add the package to the path so we can import it
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from dice_models import DiceGeometry, PolyhedronType, create_standard_dice
+from dice_models import create_standard_dice
 
 # Define the standard dice set as a constant for easy updates
 STANDARD_DICE_SIDES: List[int] = [4, 6, 8, 10, 12, 20]
@@ -27,14 +31,8 @@ app = typer.Typer(
     help="Dice Models Demo System - Generate comprehensive demonstrations of all features using parallel processing for faster generation."
 )
 
-# Default settings for demos (everything except the feature being demoed uses these)
-DEFAULT_SETTINGS = {
-    "radius": 10.0,
-    "text_depth": 0.6,
-    "text_size": 3.5,
-    "curve_resolution": "high",
-    "font_path": None,
-}
+# No default settings defined here - we use the library's defaults
+# This way if the library defaults change, the demo updates automatically
 
 
 def create_single_dice_worker(args: Tuple[int, Path, dict]) -> Tuple[int, str, float]:
@@ -64,7 +62,9 @@ def create_single_dice_worker(args: Tuple[int, Path, dict]) -> Tuple[int, str, f
     return sides, output_path.name, size_kb
 
 
-def create_dice_set(output_dir: Path, demo_name: str, custom_settings: dict = None) -> None:
+def create_dice_set(
+    output_dir: Path, demo_name: str, custom_settings: dict = None
+) -> None:
     """
     Create a complete set of dice for a demo with specified custom settings.
     Uses multiprocessing to create all dice in parallel for faster generation.
@@ -72,15 +72,13 @@ def create_dice_set(output_dir: Path, demo_name: str, custom_settings: dict = No
     Args:
         output_dir: Base output directory (demo_output)
         demo_name: Name of the demo (used for subdirectory)
-        custom_settings: Dictionary of settings that override defaults
+        custom_settings: Dictionary of settings that override library defaults
     """
     demo_dir = output_dir / demo_name
     demo_dir.mkdir(parents=True, exist_ok=True)
 
-    # Merge custom settings with defaults
-    settings = DEFAULT_SETTINGS.copy()
-    if custom_settings:
-        settings.update(custom_settings)
+    # Use custom settings if provided, otherwise let the library use its defaults
+    settings = custom_settings if custom_settings else {}
 
     print(f"\nGenerating {demo_name} dice set...")
     start_time = time.time()
@@ -94,7 +92,10 @@ def create_dice_set(output_dir: Path, demo_name: str, custom_settings: dict = No
     # Use ProcessPoolExecutor to create dice in parallel
     with ProcessPoolExecutor() as executor:
         # Submit all dice creation tasks
-        future_to_sides = {executor.submit(create_single_dice_worker, args): args[0] for args in worker_args}
+        future_to_sides = {
+            executor.submit(create_single_dice_worker, args): args[0]
+            for args in worker_args
+        }
 
         # Collect results as they complete
         results = []
@@ -115,17 +116,19 @@ def create_dice_set(output_dir: Path, demo_name: str, custom_settings: dict = No
         dice_count = len(results)
 
         # Display final results with timing
-        print(f"  Generated {dice_count} dice in {elapsed_time:.1f}s (parallel processing)")
+        print(
+            f"  Generated {dice_count} dice in {elapsed_time:.1f}s (parallel processing)"
+        )
         for sides, filename, size_kb in results:
             print(f"    D{sides}: {filename} ({size_kb:.1f} KB)")
 
 
 def demo_basic_dice_creation() -> None:
-    """Demonstrate creating standard dice with different numbers of sides."""
+    """Demonstrate creating standard dice using the library's default settings."""
     print("=" * 60)
     print("DEMO: Basic Dice Creation")
     print("=" * 60)
-    print("Creates standard dice using default settings for all parameters.")
+    print("Creates standard dice using the library's default settings.")
     print("Each dice in the set is generated in parallel for faster completion.")
 
     output_dir = Path("demo_output")
@@ -139,39 +142,16 @@ def demo_custom_number_layouts() -> None:
     print("=" * 60)
     print("DEMO: Custom Number Layouts")
     print("=" * 60)
-    print("Creates dice sets with traditional, reverse, and custom number arrangements.")
+    print("Creates dice sets with reverse and custom number arrangements.")
 
     output_dir = Path("demo_output")
 
-    # Traditional layout demo - only showing concept with D6 since other dice
-    # don't have well-defined "traditional" layouts
-    print("\nTraditional layout (D6 opposing faces sum to 7):")
-    demo_dir = output_dir / "layout_traditional"
-    demo_dir.mkdir(parents=True, exist_ok=True)
-
-    # Create D6 with traditional layout, others with default
-    for sides in STANDARD_DICE_SIDES:
-        settings = DEFAULT_SETTINGS.copy()
-        if sides == 6:
-            # Traditional D6: opposite faces sum to 7 (1-6, 2-5, 3-4)
-            dice = DiceGeometry(
-                polyhedron_type=PolyhedronType.CUBE,
-                number_layout=[1, 2, 3, 6, 5, 4],
-                **settings,
-            )
-            print("  D6 traditional layout: [1, 2, 3, 6, 5, 4]")
-        else:
-            dice = create_standard_dice(sides=sides, **settings)
-
-        dice.export_stl(demo_dir / f"d{sides}.stl")
-
     # Reverse numbering demo
     print("\nReverse numbering (highest to lowest):")
-    demo_dir = output_dir / "layout_reverse"
+    demo_dir = output_dir / "layout_custom"
     demo_dir.mkdir(parents=True, exist_ok=True)
 
     for sides in STANDARD_DICE_SIDES:
-        settings = DEFAULT_SETTINGS.copy()
         if sides == 10:
             # D10 uses 0-9, so reverse is [9,8,7,6,5,4,3,2,1,0]
             reverse_layout = list(range(9, -1, -1))
@@ -179,10 +159,12 @@ def demo_custom_number_layouts() -> None:
             # Regular dice use 1-N, so reverse is [N, N-1, ..., 1]
             reverse_layout = list(range(sides, 0, -1))
 
-        dice = create_standard_dice(sides=sides, number_layout=reverse_layout, **settings)
+        dice = create_standard_dice(sides=sides, number_layout=reverse_layout)
         dice.export_stl(demo_dir / f"d{sides}.stl")
 
-        print(f"  D{sides} reverse: {reverse_layout[:5]}{'...' if len(reverse_layout) > 5 else ''}")
+        print(
+            f"  D{sides} reverse: {reverse_layout[:5]}{'...' if len(reverse_layout) > 5 else ''}"
+        )
 
 
 def demo_text_customization() -> None:
@@ -196,7 +178,9 @@ def demo_text_customization() -> None:
 
     # Small, shallow text
     print("\nSmall, shallow text:")
-    create_dice_set(output_dir, "text_small_shallow", {"text_depth": 0.3, "text_size": 2.0})
+    create_dice_set(
+        output_dir, "text_small_shallow", {"text_depth": 0.3, "text_size": 2.0}
+    )
 
     # Large, deep text
     print("\nLarge, deep text:")
@@ -242,8 +226,7 @@ def demo_blank_dice() -> None:
     print("\nCreating blank dice for custom engraving...")
 
     for sides in STANDARD_DICE_SIDES:
-        settings = DEFAULT_SETTINGS.copy()
-        dice = create_standard_dice(sides=sides, **settings)
+        dice = create_standard_dice(sides=sides)
         output_path = demo_dir / f"d{sides}.stl"
         dice.export_stl(output_path, include_numbers=False)
 
@@ -403,9 +386,9 @@ def demo_batch_configuration() -> None:
         dice_config = {
             "sides": sides,
             "filename": f"batch_d{sides}.stl",
-            "radius": DEFAULT_SETTINGS["radius"],
-            "text_depth": DEFAULT_SETTINGS["text_depth"],
-            "text_size": DEFAULT_SETTINGS["text_size"],
+            "radius": 16.0,  # Library default
+            "text_depth": 0.5,  # Library default
+            "text_size": 6.0,  # Library default
         }
 
         # Customize some dice for variety
@@ -460,7 +443,9 @@ def all() -> None:
         print("=" * 60)
         print("All STL files have been created in organized subdirectories")
         print("within the 'demo_output' directory.")
-        print(f"Total generation time: {elapsed_time:.1f} seconds (with parallel processing)")
+        print(
+            f"Total generation time: {elapsed_time:.1f} seconds (with parallel processing)"
+        )
 
         # Show summary
         output_dir = Path("demo_output")
@@ -468,7 +453,9 @@ def all() -> None:
             subdirs = [d for d in output_dir.iterdir() if d.is_dir()]
             total_files = sum(len(list(subdir.glob("*.stl"))) for subdir in subdirs)
 
-            print(f"\nGenerated {total_files} STL files across {len(subdirs)} demo categories:")
+            print(
+                f"\nGenerated {total_files} STL files across {len(subdirs)} demo categories:"
+            )
             for subdir in sorted(subdirs):
                 files = list(subdir.glob("*.stl"))
                 print(f"  {subdir.name}: {len(files)} files")
