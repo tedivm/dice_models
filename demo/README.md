@@ -2,19 +2,9 @@
 
 This directory contains comprehensive demonstrations of the dice_models library functionality through a unified CLI-based demo system.
 
-## ✨ **New Refactored Demo System**
-
-The demo system has been completely refactored to provide:
-
-- **Full dice sets** for every demo (D4, D6, D8, D10, D12, D20)
-- **Organized output** with separate folders for each demo category
-- **Unified CLI interface** using Typer for easy access
-- **132 total dice files** across 22 demo categories (vs. 30 in the old system)
-- **Clean architecture** with consistent default settings
-
 ## Demo File
 
-### `demo_all_features.py` - Unified Demo System
+### `demo.py`
 
 A comprehensive CLI-based demonstration system showcasing all library features with organized output and full dice sets.
 
@@ -24,33 +14,24 @@ A comprehensive CLI-based demonstration system showcasing all library features w
 cd demo
 
 # Show all available commands
-python demo_all_features.py --help
+python demo.py --help
 
 # Run all demonstrations (creates 132 dice files)
-python demo_all_features.py all
+python demo.py all
 
 # Run individual demo categories
-python demo_all_features.py basic          # Standard dice with default settings
-python demo_all_features.py layouts        # Custom number arrangements
-python demo_all_features.py text           # Text size and depth variations
-python demo_all_features.py blank          # Dice without numbers
-python demo_all_features.py fonts          # Different font demonstrations
-python demo_all_features.py curves         # Curve resolution quality levels
-python demo_all_features.py layout-types   # Layout algorithm variations
-python demo_all_features.py batch-config   # Create sample batch configuration
+python demo.py basic          # Standard dice with default settings
+python demo.py layouts        # Custom number arrangements
+python demo.py text           # Text size and depth variations
+python demo.py blank          # Dice without numbers
+python demo.py fonts          # Different font demonstrations
+python demo.py curves         # Curve resolution quality levels
+python demo.py layout-types   # Layout algorithm variations
+python demo.py batch-config   # Create sample batch configuration
 
 # Clean up all generated files
-python demo_all_features.py clean
+python demo.py clean
 ```
-
-### Deprecated Demo Files
-
-**Note:** The following files have been integrated into the unified system:
-
-- `demo_cli.py` - CLI features now available through main demo system
-- `demo_layout_types.py` - Layout type demos integrated as `layout-types` command
-
-These files remain but show deprecation messages directing users to the new system.
 
 ## Demo Categories
 
@@ -124,21 +105,6 @@ demo_output/
 ├── text_size_6.0mm/        # Large text size (6 files)
 ├── text_small_shallow/     # Small, shallow text (6 files)
 └── sample_batch_config.json # Example batch configuration
-```
-
-### Summary
-
-- **Total**: 132 STL files across 22 demo categories
-- **Each category**: Contains 6 dice files (`d4.stl`, `d6.stl`, `d8.stl`, `d10.stl`, `d12.stl`, `d20.stl`)
-
-## Configuration Files
-
-### `sample_batch_config.json`
-
-Auto-generated example batch configuration for use with the main dice_models CLI:
-
-```bash
-dice_models batch-generate demo_output/sample_batch_config.json --output-dir custom_set
 ```
 
 ## Key Features Demonstrated
@@ -220,13 +186,13 @@ dice_models batch-generate demo_output/sample_batch_config.json --output-dir cus
 
 ```bash
 # See all available demos
-python demo_all_features.py --help
+python demo.py --help
 
 # Run all demos (creates 132 dice files)
-python demo_all_features.py all
+python demo.py all
 
 # Run specific demo category
-python demo_all_features.py fonts
+python demo.py fonts
 ```
 
 ### Integration with Main CLI
@@ -240,23 +206,6 @@ python -m dice_models.cli generate 6 my_d6.stl --text-depth 0.8
 # Use demo-generated batch configuration
 python -m dice_models.cli batch-generate demo_output/sample_batch_config.json --output-dir production_dice
 ```
-
-## System Requirements
-
-- **Python**: 3.10+ (minimum version as per project standards)
-- **Dependencies**: dice_models library with all dependencies
-- **Fonts**: System fonts automatically detected (optional)
-- **Storage**: ~500MB for complete demo output (132 files)
-- **Viewer**: STL viewing software for examining results
-
-## Viewing Results
-
-Generated STL files can be viewed with:
-
-- **Free Software**: Blender, FreeCAD, MeshLab, OpenSCAD
-- **Online Viewers**: Thingiverse Customizer, Online 3D Viewer
-- **3D Printing Software**: PrusaSlicer, Cura, Bambu Studio
-- **CAD Software**: Fusion 360, SolidWorks (import STL)
 
 ## Performance Notes
 
@@ -282,7 +231,7 @@ Always activate your virtual environment first:
 ```bash
 source .venv/bin/activate  # or venv/bin/activate
 cd demo
-python demo_all_features.py --help
+python demo.py --help
 ```
 
 ### Font Issues
@@ -291,7 +240,7 @@ If no system fonts are detected:
 
 ```bash
 # Check available fonts on your system
-python demo_all_features.py fonts
+python demo.py fonts
 
 # On Linux, install font packages
 sudo apt-get install fonts-dejavu-core fonts-liberation
@@ -306,7 +255,7 @@ Ensure write permissions in demo directory:
 ```bash
 chmod +w demo/
 cd demo
-python demo_all_features.py basic
+python demo.py basic
 ```
 
 ### Clean Up
@@ -314,7 +263,7 @@ python demo_all_features.py basic
 Remove all generated files:
 
 ```bash
-python demo_all_features.py clean
+python demo.py clean
 ```
 
 ## Development
@@ -323,7 +272,7 @@ python demo_all_features.py clean
 
 To add new demonstrations:
 
-1. **Add demo function** to `demo_all_features.py`:
+1. **Add demo function** to `demo.py`:
 
    ```python
    def demo_new_feature() -> None:
@@ -355,87 +304,17 @@ To add new demonstrations:
 
 4. **Update this README** with the new demo category
 
-### Demo Architecture
-
-The system uses a clean, consistent architecture:
-
-- **`DEFAULT_SETTINGS`**: Base configuration for all demos
-- **`STANDARD_DICE_SIDES`**: Dice types to generate for each demo
-- **`create_dice_set()`**: Core function that generates full dice sets
-- **Typer CLI**: Clean command interface with help system
-- **Organized output**: Each demo creates its own subdirectory
-
 ### Testing New Features
 
 Use the demo system to validate new library features:
 
 ```bash
 # Test individual components
-python demo_all_features.py basic
+python demo.py basic
 
 # Test complete integration
-python demo_all_features.py all
+python demo.py all
 
 # Clean up between tests
-python demo_all_features.py clean
+python demo.py clean
 ```
-
-## Integration & Uses
-
-This demo system serves multiple purposes:
-
-### For Users
-
-- **Learning Examples**: See how to use every library feature
-- **Parameter Reference**: Understand the effect of different settings
-- **Quality Comparison**: Choose appropriate settings for your needs
-- **Batch Templates**: Use generated configurations as starting points
-
-### For Development
-
-- **Feature Validation**: Verify new features work across all dice types
-- **Regression Testing**: Ensure changes don't break existing functionality
-- **Performance Benchmarking**: Compare rendering times and file sizes
-- **Documentation**: Living examples that stay up-to-date with code
-
-### For 3D Printing
-
-- **Master Molds**: High-quality dice for creating silicon molds
-- **Direct Printing**: STL files ready for 3D printer slicing
-- **Quality Testing**: Compare different resolution settings for your printer
-- **Font Testing**: See how different fonts render at your scale
-
-### Integration Points
-
-The demo system integrates with:
-
-- **Main CLI**: Uses same configuration format for batch processing
-- **Core Library**: Validates all major API functions
-- **Documentation**: Provides concrete examples for all features
-- **Testing Suite**: Serves as comprehensive integration tests
-
-## Migration from Old System
-
-If you were using the old demo files:
-
-### Old Commands → New Commands
-
-```bash
-# Old way
-python demo_all_features.py        → python demo_all_features.py all
-python demo_cli.py                 → python demo_all_features.py --help
-python demo_layout_types.py        → python demo_all_features.py layout-types
-
-# New individual demos (not available in old system)
-python demo_all_features.py basic
-python demo_all_features.py fonts
-python demo_all_features.py curves
-```
-
-### Output Changes
-
-- **Old**: 30 files in flat `demo_output/` structure
-- **New**: 132 files in organized subdirectories
-- **Benefit**: Much easier to find and compare specific demonstrations
-
-The refactored system preserves all original functionality while adding significant improvements in organization, completeness, and usability.
