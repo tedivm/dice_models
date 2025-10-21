@@ -203,7 +203,7 @@ typing-inspection==0.4.1
     # via
     #   pydantic
     #   pydantic-settings
-uv==0.8.14
+uv==0.9.5
     # via dice-models (pyproject.toml)
 vhacdx==0.0.8.post2
     # via trimesh
