@@ -37,7 +37,7 @@ face==24.0.0
     # via glom
 fastapi==0.116.1
     # via dice-models (pyproject.toml)
-fonttools==4.59.2
+fonttools==4.61.0
     # via dice-models (pyproject.toml)
 glom==24.11.0
     # via dice-models (pyproject.toml)
