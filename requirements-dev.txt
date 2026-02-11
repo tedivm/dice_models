@@ -95,7 +95,7 @@ packaging==25.0
     #   pytest
 pathspec==0.12.1
     # via mypy
-pillow==11.3.0
+pillow==12.1.1
     # via trimesh
 pluggy==1.6.0
     # via
